@@ -32,7 +32,7 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .banner.of{background:color-mix(in srgb,var(--er) 15%,transparent);border:1px solid var(--er);color:var(--er)}
 .banner.sy{background:color-mix(in srgb,var(--nt) 15%,transparent);border:1px solid var(--nt);color:var(--nt)}
 .tabs{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:14px;border:1px solid var(--bd);margin-bottom:14px}
-.tabs button{flex:1;border:0;background:none;color:var(--mu);padding:9px 2px;border-radius:10px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.tabs button{flex:1;border:0;background:none;color:var(--mu);padding:9px 1px;border-radius:10px;font:600 12px inherit;font-family:inherit;cursor:pointer}
 .tabs button.on{background:var(--ac);color:#fff}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:14px}
 .hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -76,6 +76,8 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .modal input{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:10px 0}
 .modal code{display:block;word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;font-size:12px;margin:6px 0}
 .card textarea,.card input#aw{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:0 0 10px;resize:vertical}
+.card select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:0 0 10px}
+.card input.pi{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:0 0 10px}
 .btn.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
 .ad{font-weight:700;font-size:13px;text-transform:capitalize;margin:14px 0 6px;color:var(--ac)}
 .ae{padding:9px 0;border-bottom:1px solid var(--bd)}.ae:last-child{border:0}.ae .t{color:var(--mu);font-size:12px;margin-bottom:3px}
@@ -99,8 +101,9 @@ import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.
 import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js";
 
-const S=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","MUESTRAS BAT","WIND SENSOR"];
-const NW=22,NS=22,TOT=NW*NS,PROJ=["projects","parque"];
+const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","MUESTRAS BAT","WIND SENSOR"];
+let S=[...BASE],NS=S.length;
+const NW=22,PROJ=["projects","parque"];
 const K=(w,s)=>String(w).padStart(2,"0")+"-"+s;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
 const pad=n=>String(n).padStart(2,"0");
 const $=id=>document.getElementById(id);
@@ -125,6 +128,7 @@ let H=[];            // historial (más reciente primero)
 let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=navigator.onLine,pendingN=0,fatal=null,seedErr=null;
 let NAME=localStorage.getItem("tecnico")||"";
 let A=[],draft="",draftW="";
+let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:""};
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
 const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
 const sp=s=>{let n=0;for(let w=1;w<=NW;w++)n+=done(K(w,s))?1:0;return n};
@@ -147,6 +151,8 @@ const db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:pe
 const tasksCol=collection(db,...PROJ,"tasks");
 const histCol=collection(db,...PROJ,"history");
 const actaCol=collection(db,...PROJ,"acta");
+const sisCol=collection(db,...PROJ,"sistemas");
+const piezasCol=collection(db,...PROJ,"piezas");
 
 onAuthStateChanged(auth,async u=>{
  if(!u){try{await signInAnonymously(auth)}catch(e){fatal=e.code==="auth/operation-not-allowed"?"Habilitá la autenticación anónima en Firebase (Authentication → Sign-in method).":"No se pudo iniciar sesión: "+e.message;render()}return}
@@ -170,6 +176,17 @@ function start(){
  onSnapshot(query(actaCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   A=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
+ /* Tareas (sistemas) extra agregadas por los técnicos: ids 23, 24, ... */
+ onSnapshot(sisCol,snap=>{
+  const ex=snap.docs.map(d=>({n:+d.id,name:String(d.data().name||"")})).filter(x=>x.n>=23);
+  S=[...BASE];ex.forEach(x=>{S[x.n-1]=x.name});
+  for(let i=0;i<S.length;i++)if(!S[i])S[i]="TAREA "+(i+1);
+  NS=S.length;render(true)
+ },()=>{});
+ onSnapshot(query(piezasCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
+  P=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
+ },()=>{});
+ seedPiezas();
 }
 
 /* Carga inicial: una sola vez. La transacción verifica meta/init, así que abrir la app nunca reinicia nada. */
@@ -179,8 +196,8 @@ async function seed(){
   await runTransaction(db,async tx=>{
    const init=doc(db,...PROJ,"meta","init");
    if((await tx.get(init)).exists())return;
-   for(let w=1;w<=NW;w++)for(let s=1;s<=NS;s++){const k=K(w,s);
-    tx.set(doc(tasksCol,k),{w,s,sys:S[s-1],done:!!D[k],note:N[k]||"",by:null,byName:"Carga inicial (pizarra)",at:serverTimestamp()})}
+   for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=K(w,s);
+    tx.set(doc(tasksCol,k),{w,s,sys:BASE[s-1],done:!!D[k],note:N[k]||"",by:null,byName:"Carga inicial (pizarra)",at:serverTimestamp()})}
    tx.set(init,{at:serverTimestamp(),by:uid});
   });
   seedErr=null;
@@ -191,7 +208,7 @@ async function seed(){
 function setTask(w,s,target,prevOverride){
  if(!canEdit())return;
  const k=K(w,s),prev=prevOverride??done(k),b=writeBatch(db);
- b.update(doc(tasksCol,k),{done:target,by:uid,byName:NAME,at:serverTimestamp()});
+ b.set(doc(tasksCol,k),{w,s,done:target,by:uid,byName:NAME,at:serverTimestamp()},{merge:true});
  b.set(doc(histCol),{w,s,sys:S[s-1],done:target,prev,by:uid,byName:NAME,at:serverTimestamp()});
  // Con persistencia offline el commit se resuelve cuando el servidor confirma; mientras tanto la celda muestra "pendiente".
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el cambio NO se guardó":"❌ El cambio no se guardó: "+e.message));
@@ -205,7 +222,7 @@ window.restoreAll=async()=>{
  try{
   const {D,N}=seedData();let b=writeBatch(db),n=0;
   const flush=async()=>{await b.commit();b=writeBatch(db);n=0};
-  for(let w=1;w<=NW;w++)for(let s=1;s<=NS;s++){const k=K(w,s);
+  for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=K(w,s);
    b.update(doc(tasksCol,k),{done:!!D[k],note:N[k]||"",by:uid,byName:NAME+" (restauración)",at:serverTimestamp()});
    if(++n>=100)await flush()}
   b.set(doc(histCol),{w:0,s:0,sys:"TODO",done:false,prev:false,restore:true,by:uid,byName:NAME,at:serverTimestamp()});
@@ -238,37 +255,40 @@ function status(){
 /* ---------- Vistas (mismo diseño de la app original) ---------- */
 const bar=p=>`<div class="bar"><i style="width:${p}%;background:${col(p)}"></i></div>`;
 function ring(p){const r=62,c=2*Math.PI*r;return `<div class="ring"><svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--pe)" stroke-width="16"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${p>=100?"var(--ok)":"var(--ac)"}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${c*p/100} ${c}"/></svg><b>${p.toFixed(1)}%<small>avance total</small></b></div>`}
-function vRes(){const t=tot(),p=t/TOT*100;let full=0,none=[];
+function vRes(){const t=tot(),p=t/(NW*NS)*100;let full=0,none=[];
  for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
  S.forEach((n,i)=>{if(sp(i+1)==0)none.push(n)});
- let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${TOT-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
+ let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${(NW*NS)-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
  if(none.length)h+=`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`;
- const pend=[];for(let w=1;w<=NW;w++){const q=NS-wp(w);if(q>0)pend.push([w,q])}
+ const pt=ppTot();
+ if(pt){const by={};P.forEach(x=>{if(!x.repuesta)by[x.don]=(by[x.don]||0)+1});
+  h+=`<div class="card"><h2>🔧 Piezas pendientes de reposición · ${pt}</h2><div class="chips">`+Object.keys(by).sort((a,b)=>by[b]-by[a]||a-b).map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)} · ${by[w]}</button>`).join("")+`</div><div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza pendiente hasta que se marque "Repuesta" en la pestaña Piezas.</div></div>`}
+ const pend=[];for(let w=1;w<=NW;w++){const q=(NS-wp(w))+pp(w);if(q>0)pend.push([w,q])}
  pend.sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
- if(pend.length)h+=`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.round(q/NS*100)}%;background:var(--nt)"></i></div><span class="p" style="width:72px">${q} pend.</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes y su acta.</div></div>`;
+ if(pend.length)h+=`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.min(100,Math.round(q/NS*100))}%;background:var(--nt)"></i></div><span class="p" style="width:96px">${q} pend.${pp(w)?` (🔧${pp(w)})`:""}</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes, piezas y acta. Incluye las piezas extraídas sin reponer (🔧).</div></div>`;
  h+=`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`;
  return h}
-function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g"><div class="h"></div>`;
+function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g" style="grid-template-columns:38px repeat(${NS},26px)"><div class="h"></div>`;
  S.forEach(n=>h+=`<div class="h">${n}</div>`);
  for(let w=1;w<=NW;w++){h+=`<div class="l">${pad(w)}</div>`;
   for(let s=1;s<=NS;s++){const k=K(w,s),d=done(k),nt=note(k),pe=T[k]&&T[k].pending;
    h+=`<button class="c ${d?"d":nt?"n":""} ${pe?"p":""}" title="WTG ${pad(w)} · ${S[s-1]}${nt?" · "+esc(nt):""}" onclick="tg(${w},${s})">${d?"✓":nt?"!":""}</button>`}}
  return h+`</div></div><div class="sub" style="margin-top:8px">Deslizá para ver todos los sistemas. Tocá un casillero para marcar/desmarcar: se actualiza en todos los dispositivos.</div>`}
-function vWtg(){let h=`<div class="wg">`;
+function vWtg(){let h=`<div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button></div><div class="wg">`;
  for(let w=1;w<=NW;w++){const p=Math.round(wp(w)/NS*100);
-  h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span></button>`}
+  h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span>${pp(w)?`<span style="display:block;color:var(--nt);font-weight:600">🔧 ${pp(w)} pieza${pp(w)>1?"s":""}</span>`:""}</button>`}
  h+=`</div>`;
  if(sel){h+=`<div class="card" style="margin-top:14px"><h2>WTG ${pad(sel)} · ${Math.round(wp(sel)/NS*100)}% completo</h2><div class="chips">`;
   S.forEach((n,i)=>{const k=K(sel,i+1);h+=`<button class="chip ${done(k)?"d":note(k)?"n":""} ${T[k]&&T[k].pending?"p":""}" onclick="tg(${sel},${i+1})">${done(k)?"✓ ":""}${n}${!done(k)&&note(k)?" · "+esc(note(k)):""}</button>`});
-  h+=`</div></div>`+wtgActa(sel)}
+  h+=`<button class="chip" style="background:transparent;border:2px dashed var(--ac);color:var(--ac)" onclick="openAddTask()">＋ Nueva tarea</button></div></div>`+wtgPiezas(sel)+wtgActa(sel)}
  else h+=`<div class="sub" style="margin-top:10px">Tocá un WTG para ver y editar sus sistemas.</div>`;
  return h}
 function vHist(){
  if(!H.length)return `<div class="card sub">Todavía no hay cambios registrados.</div>`;
  return `<div class="card"><h2>Últimas modificaciones</h2>`+H.map(h=>{
-  const what=h.restore?"Restauró los datos originales":`WTG ${pad(h.w)} · ${esc(h.s>0&&S[h.s-1]?S[h.s-1]:h.sys)} → ${h.done?"completo":"pendiente"}`;
+  const what=h.restore?"Restauró los datos originales":h.nueva?`Nueva tarea: ${esc(h.sys)}`:`WTG ${pad(h.w)} · ${esc(h.s>0&&S[h.s-1]?S[h.s-1]:h.sys)} → ${h.done?"completo":"pendiente"}`;
   const at=h.at&&h.at.toDate?h.at.toDate():null;
-  return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
+  return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore&&!h.nueva?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
 
 /* ---------- Acta de avances ---------- */
 const dayKey=d=>d?d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"…";
@@ -302,6 +322,82 @@ window.dlActa=()=>{
  const u=URL.createObjectURL(new Blob([t],{type:"text/plain;charset=utf-8"})),l=document.createElement("a");
  l.href=u;l.download="acta-avances-"+new Date().toISOString().slice(0,10)+".txt";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)};
 
+/* ---------- Piezas extraídas ---------- */
+const pp=w=>{let n=0;for(const x of P)if(x.don===w&&!x.repuesta)n++;return n};
+const ppTot=()=>{let n=0;for(const x of P)if(!x.repuesta)n++;return n};
+const rcvLabel=r=>/^\d+$/.test(String(r))?"WTG "+pad(+r):esc(r);
+const wopts=v=>`<option value="">Elegir…</option>`+Array.from({length:NW},(_,i)=>`<option value="${i+1}" ${String(v)===String(i+1)?"selected":""}>WTG ${pad(i+1)}</option>`).join("");
+function pieceRow(x){
+ const d=x.at&&x.at.toDate?x.at.toDate():null;
+ return `<div class="ae"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>${esc(x.pieza)}</b><div class="t">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div>${x.obs?`<div class="atx" style="font-size:13px">${esc(x.obs)}</div>`:""}<div class="t">${esc(x.byName||"—")} · ${fmt(d)}${x.pending?" · ⏳ guardando…":""}${x.repuesta?` · repuesta por ${esc(x.repByName||"—")}`:""}</div></div><div style="text-align:right;flex:none"><button class="chip ${x.repuesta?"d":"n"}" onclick="pzToggle('${x.id}')">${x.repuesta?"✅ Repuesta":"⏳ Pendiente en WTG "+pad(x.don)}</button>${isAdmin?` <button class="btn" onclick="pzDel('${x.id}')">🗑</button>`:""}</div></div></div>`}
+function pzList(){
+ const L=[...P].filter(x=>!pzOnly||!x.repuesta).sort((a,b)=>(a.repuesta?1:0)-(b.repuesta?1:0));
+ return L.length?L.map(pieceRow).join(""):`<div class="sub">${pzOnly?"No hay piezas pendientes de reposición.":"Todavía no hay piezas registradas."}</div>`}
+function vPiezas(){
+ return `<div class="card acta-form"><h2>🔧 Registrar pieza extraída</h2>
+ <input class="pi" id="pzp" maxlength="120" placeholder="Pieza (ej: Encoder blade B)" value="${esc(pzD.pieza)}" oninput="pzSet('pieza',this.value)">
+ <div class="sub" style="margin:0 0 4px">WTG donante (de donde se saca)</div>
+ <select onchange="pzSet('don',this.value)">${wopts(pzD.don)}</select>
+ <div class="sub" style="margin:0 0 4px">WTG que recibe</div>
+ <select onchange="pzSet('rcv',this.value)">${wopts(pzD.rcv).replace("</select>","")}${["Mataco","Container","Otro"].map(o=>`<option value="${o}" ${pzD.rcv===o?"selected":""}>${o}</option>`).join("")}</select>
+ <input class="pi" maxlength="200" placeholder="Observaciones (opcional)" value="${esc(pzD.obs)}" oninput="pzSet('obs',this.value)">
+ <button class="btn pri" onclick="pzAdd()">Registrar pieza</button>
+ <div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza como <b>pendiente</b> (se suma a sus pendientes y al Resumen) hasta que se marque como repuesta.</div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Piezas extraídas</h2><div style="display:flex;gap:6px"><button class="chip ${pzOnly?"d":""}" onclick="pzF(true)">Pendientes (${ppTot()})</button><button class="chip ${pzOnly?"":"d"}" onclick="pzF(false)">Todas (${P.length})</button></div></div><div id="plist">${pzList()}</div></div>`}
+window.pzSet=(k,v)=>{pzD[k]=v};
+window.pzF=v=>{pzOnly=v;render()};
+window.pzAdd=()=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ const pieza=pzD.pieza.trim(),don=parseInt(pzD.don,10),rcv=String(pzD.rcv||"").trim();
+ if(!pieza||!don||!rcv){toast("Completá la pieza, la WTG donante y quién recibe");return}
+ if(/^\d+$/.test(rcv)&&+rcv===don){toast("La WTG donante y la que recibe no pueden ser la misma");return}
+ const b=writeBatch(db);
+ b.set(doc(piezasCol),{pieza,don,rcv,obs:pzD.obs.trim(),repuesta:false,by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: la pieza NO se guardó":"❌ La pieza no se guardó: "+e.message));
+ pzD={pieza:"",don:"",rcv:"",obs:""};render()};
+window.pzToggle=id=>{
+ const x=P.find(y=>y.id===id);if(!x)return;
+ if(!canEdit()){if(!NAME)openUser();return}
+ const t=!x.repuesta;
+ if(!confirm(t?`¿Confirmás que "${x.pieza}" ya fue repuesta en la WTG ${pad(x.don)}?`:`¿Volver a marcar "${x.pieza}" como pendiente en la WTG ${pad(x.don)}?`))return;
+ const b=writeBatch(db);
+ b.update(doc(piezasCol,id),{repuesta:t,repBy:uid,repByName:NAME,repAt:serverTimestamp()});
+ b.commit().catch(e=>toast("❌ El cambio no se guardó: "+e.message))};
+window.pzDel=id=>{if(!isAdmin)return;const x=P.find(y=>y.id===id);if(!x||!confirm(`¿Borrar el registro de "${x.pieza}"? No se puede deshacer.`))return;
+ const b=writeBatch(db);b.delete(doc(piezasCol,id));b.commit().catch(e=>toast("❌ No se pudo borrar: "+e.message))};
+function wtgPiezas(w){
+ const don=P.filter(x=>x.don===w),rec=P.filter(x=>/^\d+$/.test(String(x.rcv))&&+x.rcv===w);
+ if(!don.length&&!rec.length)return "";
+ let h=`<div class="card"><h2>🔧 Piezas de la WTG ${pad(w)}</h2>`;
+ if(don.length)h+=`<div class="sub" style="margin:0 0 2px">Extraídas de esta WTG · ${don.filter(x=>!x.repuesta).length} pendiente(s) de reposición</div>`+don.map(pieceRow).join("");
+ if(rec.length)h+=`<div class="sub" style="margin:12px 0 2px">Recibidas por esta WTG</div>`+rec.map(pieceRow).join("");
+ return h+`</div>`}
+/* Carga inicial de las piezas de la pizarra: una sola vez */
+async function seedPiezas(){
+ try{
+  const L=[["Controlador del Hub, No preciso NCR",6,"Mataco",""],["CT6050, pala B con bases",6,"15",""],["Load sensor Pala B y C, No preciso NCR",6,"15",""],["Barras transformador flexible",6,"17",""],["Encoder blade B",6,"13",""],["Barras flexible transformador (container) - cortas 63 cm",4,"Container",""],["Cisco",8,"10",""],["Conexión y codo de bloque pala b, manifold",22,"15","Conexión y codo están en oficina. Falta instalar 22"],["Loop",6,"14",""]];
+  await runTransaction(db,async tx=>{
+   const f=doc(db,...PROJ,"meta","piezas_init");
+   if((await tx.get(f)).exists())return;
+   L.forEach(([pieza,don,rcv,obs])=>tx.set(doc(piezasCol),{pieza,don,rcv,obs,repuesta:false,by:uid,byName:"Carga inicial (pizarra)",at:serverTimestamp()}));
+   tx.set(f,{at:serverTimestamp(),by:uid});
+  });
+ }catch(e){}
+}
+/* ---------- Tareas nuevas ---------- */
+window.openAddTask=()=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ $("mub").innerHTML=`<h2>＋ Nueva tarea</h2><div class="sub">Se agrega a las ${NW} WTG como pendiente. Ej: MUESTRAS DE ACEITE</div><input id="nt" placeholder="Nombre de la tarea" maxlength="30"><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m()">Cancelar</button><button class="btn pri" onclick="addTask()">Agregar</button></div>`;
+ $("mu").style.display="flex";setTimeout(()=>$("nt")&&$("nt").focus(),50)};
+window.addTask=()=>{
+ const name=$("nt").value.trim().replace(/\s+/g," ").toUpperCase();
+ if(!name)return;
+ if(S.some(x=>x.toUpperCase()===name)){toast("Esa tarea ya existe");return}
+ const id=String(S.length+1),b=writeBatch(db);
+ b.set(doc(sisCol,id),{name,by:uid,byName:NAME,at:serverTimestamp()});
+ b.set(doc(histCol),{w:0,s:+id,sys:name,nueva:true,done:false,prev:false,by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ No se pudo agregar la tarea (si otro técnico agregó una al mismo tiempo, probá de nuevo)":"❌ La tarea no se guardó: "+e.message));
+ $m()};
 window.goWtg=w=>{sel=w;tab="wtg";render()};
 /* Detecta a qué WTG se refiere un registro: campo "WTG involucrados" + menciones "WTG 13", "WTG 5, 7 y 13" en el texto */
 function actaWtgs(a){
@@ -328,9 +424,9 @@ window.render=function(keep){
   :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"";
  document.body.classList.toggle("ro",!canEdit());
- $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["his","🕘 Historial"],["act","📝 Acta"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
- if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?vActa():vHist();
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?vActa():tab=="pie"?vPiezas():vHist();
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  $("adm").innerHTML=isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:"";
 };

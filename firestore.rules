@@ -40,6 +40,35 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Piezas extraídas: se agregan; solo se puede cambiar el estado "repuesta". Borrar: solo admin.
+    match /projects/{project}/piezas/{pid} {
+      allow read: if signed();
+      allow create: if signed()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.pieza is string
+        && request.resource.data.pieza.size() > 0 && request.resource.data.pieza.size() <= 120
+        && request.resource.data.don is int
+        && request.resource.data.don >= 1 && request.resource.data.don <= 22
+        && request.resource.data.rcv is string
+        && request.resource.data.rcv.size() > 0 && request.resource.data.rcv.size() <= 30;
+      allow update: if signed()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['repuesta','repBy','repByName','repAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Tareas (sistemas) extra agregadas por los técnicos: ids 23 a 99. Solo se crean.
+    match /projects/{project}/sistemas/{sid} {
+      allow read: if signed();
+      allow create: if signed()
+        && sid.matches('^(2[3-9]|[3-9][0-9])$')
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 30;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
+      allow delete: if false;
+    }
+
     match /projects/{project}/meta/{doc} {
       allow read: if signed();
       allow create: if signed();
