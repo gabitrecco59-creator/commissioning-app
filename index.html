@@ -237,6 +237,9 @@ function vRes(){const t=tot(),p=t/TOT*100;let full=0,none=[];
  S.forEach((n,i)=>{if(sp(i+1)==0)none.push(n)});
  let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${TOT-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
  if(none.length)h+=`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`;
+ const pend=[];for(let w=1;w<=NW;w++){const q=NS-wp(w);if(q>0)pend.push([w,q])}
+ pend.sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
+ if(pend.length)h+=`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.round(q/NS*100)}%;background:var(--nt)"></i></div><span class="p" style="width:72px">${q} pend.</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes y su acta.</div></div>`;
  h+=`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`;
  return h}
 function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g"><div class="h"></div>`;
@@ -251,7 +254,7 @@ function vWtg(){let h=`<div class="wg">`;
  h+=`</div>`;
  if(sel){h+=`<div class="card" style="margin-top:14px"><h2>WTG ${pad(sel)} · ${Math.round(wp(sel)/NS*100)}% completo</h2><div class="chips">`;
   S.forEach((n,i)=>{const k=K(sel,i+1);h+=`<button class="chip ${done(k)?"d":note(k)?"n":""} ${T[k]&&T[k].pending?"p":""}" onclick="tg(${sel},${i+1})">${done(k)?"✓ ":""}${n}${!done(k)&&note(k)?" · "+esc(note(k)):""}</button>`});
-  h+=`</div></div>`}
+  h+=`</div></div>`+wtgActa(sel)}
  else h+=`<div class="sub" style="margin-top:10px">Tocá un WTG para ver y editar sus sistemas.</div>`;
  return h}
 function vHist(){
@@ -293,6 +296,20 @@ window.dlActa=()=>{
  const u=URL.createObjectURL(new Blob([t],{type:"text/plain;charset=utf-8"})),l=document.createElement("a");
  l.href=u;l.download="acta-avances-"+new Date().toISOString().slice(0,10)+".txt";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)};
 
+window.goWtg=w=>{sel=w;tab="wtg";render()};
+/* Detecta a qué WTG se refiere un registro: campo "WTG involucrados" + menciones "WTG 13", "WTG 5, 7 y 13" en el texto */
+function actaWtgs(a){
+ const set=new Set();
+ (String(a.wtg||"").match(/\d{1,2}/g)||[]).forEach(n=>set.add(+n));
+ const re=/wtg'?s?\s*((?:\d{1,2}(?:\s*(?:,|y|e|\/|&)\s*)?)+)/gi;let m;
+ while((m=re.exec(String(a.text||"")))){(m[1].match(/\d{1,2}/g)||[]).forEach(n=>set.add(+n))}
+ return set}
+function wtgActa(w){
+ const L=A.filter(a=>actaWtgs(a).has(w));
+ let h=`<div class="card"><h2>📝 Acta de la WTG ${pad(w)} · ${L.length} registro${L.length==1?"":"s"}</h2>`;
+ if(!L.length)return h+`<div class="sub">Todavía no hay registros del acta para esta WTG. Aparecen cuando el texto menciona "WTG ${pad(w)}" o la cargás en el campo de WTG involucrados.</div></div>`;
+ return h+L.map(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null;
+  return `<div class="ae"><div class="t">${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.pending?" · ⏳ guardando…":""}</div><div class="atx">${esc(a.text)}</div></div>`}).join("")+`</div>`}
 window.setSel=w=>{sel=w;render(true)};
 window.setTab=k=>{tab=k;render()};
 window.render=function(keep){
