@@ -2,6 +2,14 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Avance Commissioning</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Commissioning">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f3f5fa;--card:#fff;--tx:#1a2233;--mu:#68718a;--bd:#e2e6f0;--pe:#e4e8f1;--ok:#16a34a;--nt:#f59e0b;--ac:#2563eb;--er:#dc2626;color-scheme:light}
@@ -64,6 +72,12 @@ h1{font-size:20px;margin:4px 0 2px}h2{font-size:15px;margin:0 0 10px}
 .modal>div{background:var(--card);border-radius:16px;padding:18px;max-width:380px;width:100%}
 .modal input{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:10px 0}
 .modal code{display:block;word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;font-size:12px;margin:6px 0}
+.card textarea,.card input#aw{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:0 0 10px;resize:vertical}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.ad{font-weight:700;font-size:13px;text-transform:capitalize;margin:14px 0 6px;color:var(--ac)}
+.ae{padding:9px 0;border-bottom:1px solid var(--bd)}.ae:last-child{border:0}.ae .t{color:var(--mu);font-size:12px;margin-bottom:3px}
+.atx{white-space:pre-wrap;word-break:break-word;font-size:14px}
+@media print{.top,#banner,.tabs,#adm,.acta-form,.btn,.toast{display:none!important}body{padding:0;max-width:none}.card{border:0}}
 </style></head><body>
 <div class="top">
  <div><h1>⚡ Avance de Commissioning</h1><div class="sub" id="meta">Parque eólico · 22 WTG × 22 sistemas</div></div>
@@ -104,6 +118,7 @@ let T={};            // id -> {done,note,pending}
 let H=[];            // historial (más reciente primero)
 let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=navigator.onLine,pendingN=0,fatal=null,seedErr=null;
 let NAME=localStorage.getItem("tecnico")||"";
+let A=[],draft="",draftW="";
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
 const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
 const sp=s=>{let n=0;for(let w=1;w<=NW;w++)n+=done(K(w,s))?1:0;return n};
@@ -125,6 +140,7 @@ const auth=getAuth(app);
 const db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
 const tasksCol=collection(db,...PROJ,"tasks");
 const histCol=collection(db,...PROJ,"history");
+const actaCol=collection(db,...PROJ,"acta");
 
 onAuthStateChanged(auth,async u=>{
  if(!u){try{await signInAnonymously(auth)}catch(e){fatal=e.code==="auth/operation-not-allowed"?"Habilitá la autenticación anónima en Firebase (Authentication → Sign-in method).":"No se pudo iniciar sesión: "+e.message;render()}return}
@@ -144,6 +160,9 @@ function start(){
  },e=>{fatal=e.code==="permission-denied"?"Sin permisos. Revisá las reglas de Firestore y que la autenticación anónima esté activa.":"Error de sincronización: "+e.message;render()});
  onSnapshot(query(histCol,orderBy("at","desc"),limit(100)),{includeMetadataChanges:true},snap=>{
   H=snap.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"})}));render(true)
+ },()=>{});
+ onSnapshot(query(actaCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
+  A=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
 }
 
@@ -242,6 +261,38 @@ function vHist(){
   const at=h.at&&h.at.toDate?h.at.toDate():null;
   return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
 
+/* ---------- Acta de avances ---------- */
+const dayKey=d=>d?d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"…";
+const hhmm=d=>d?d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}):"…";
+function actaList(){
+ if(!A.length)return `<div class="sub">Todavía no hay registros. Escribí el primero arriba.</div>`;
+ let h="",last="";
+ A.forEach(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null,k=dayKey(d);
+  if(k!==last){h+=`<div class="ad">${esc(k)}</div>`;last=k}
+  h+=`<div class="ae"><div class="t">${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.wtg?` · WTG ${esc(a.wtg)}`:""}${a.pending?" · ⏳ guardando…":""}</div><div class="atx">${esc(a.text)}</div></div>`});
+ return h}
+function vActa(){
+ return `<div class="card acta-form"><h2>📝 Nuevo registro</h2>
+ <textarea id="atx" maxlength="2000" rows="4" placeholder="Ej: Hoy se hicieron los motores de yaw y se cambió el encoder del generador" oninput="setDraft(this.value)">${esc(draft)}</textarea>
+ <input id="aw" placeholder="WTG involucrados (opcional, ej: 05, 07)" maxlength="40" value="${esc(draftW)}" oninput="setDraftW(this.value)">
+ <button class="btn pri" onclick="addActa()">Registrar en el acta</button>
+ <div class="sub" style="margin:8px 0 0">Cada registro queda guardado con fecha, hora y tu nombre. No se puede editar ni borrar: si hay un error, agregá una corrección.</div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div><div id="alist">${actaList()}</div></div>`}
+window.setDraft=v=>{draft=v};window.setDraftW=v=>{draftW=v};
+window.addActa=()=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ const text=draft.trim();if(!text){toast("Escribí algo para registrar");return}
+ const b=writeBatch(db);
+ b.set(doc(actaCol),{text,wtg:draftW.trim(),by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el registro NO se guardó":"❌ El registro no se guardó: "+e.message));
+ draft="";draftW="";render();
+};
+window.dlActa=()=>{
+ const t="ACTA DE AVANCES - COMMISSIONING\n\n"+[...A].reverse().map(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null;
+  return `[${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)}] ${a.byName||"—"}${a.wtg?" (WTG "+a.wtg+")":""}\n${a.text}\n`}).join("\n");
+ const u=URL.createObjectURL(new Blob([t],{type:"text/plain;charset=utf-8"})),l=document.createElement("a");
+ l.href=u;l.download="acta-avances-"+new Date().toISOString().slice(0,10)+".txt";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)};
+
 window.setSel=w=>{sel=w;render(true)};
 window.setTab=k=>{tab=k;render()};
 window.render=function(keep){
@@ -254,9 +305,9 @@ window.render=function(keep){
   :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"";
  document.body.classList.toggle("ro",!canEdit());
- $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["his","🕘 Historial"],["act","📝 Acta"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
- $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():vHist();
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?vActa():vHist();
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  $("adm").innerHTML=isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:"";
 };
