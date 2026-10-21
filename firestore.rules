@@ -29,6 +29,17 @@ service cloud.firestore {
     }
 
     // Marca de "datos iniciales ya cargados"
+    // Acta de avances: solo se agrega. Nadie edita ni borra registros.
+    match /projects/{project}/acta/{entryId} {
+      allow read: if signed();
+      allow create: if signed()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000;
+      allow update, delete: if false;
+    }
+
     match /projects/{project}/meta/{doc} {
       allow read: if signed();
       allow create: if signed();
