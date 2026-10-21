@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Avance Commissioning</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f5fa;--card:#fff;--tx:#1a2233;--mu:#68718a;--bd:#e2e6f0;--pe:#e4e8f1;--ok:#16a34a;--nt:#f59e0b;--ac:#2563eb;--er:#dc2626;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#1a2132;--tx:#e8ecf5;--mu:#93a0ba;--bd:#2a3350;--pe:#2a3350;--ok:#22c55e;--nt:#fbbf24;--ac:#60a5fa;--er:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#1a2132;--tx:#e8ecf5;--mu:#93a0ba;--bd:#2a3350;--pe:#2a3350;--ok:#22c55e;--nt:#fbbf24;--ac:#60a5fa;--er:#f87171;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 2px}h2{font-size:15px;margin:0 0 10px}
+.sub{color:var(--mu);font-size:13px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:5px 10px;font-size:12px;font-weight:600;background:var(--card);border:1px solid var(--bd);white-space:nowrap}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--mu)}
+.pill.ok i{background:var(--ok)}.pill.sy i{background:var(--nt);animation:pu 1s infinite}.pill.of i,.pill.er i{background:var(--er)}
+@keyframes pu{50%{opacity:.3}}
+.banner{border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:600}
+.banner.of{background:color-mix(in srgb,var(--er) 15%,transparent);border:1px solid var(--er);color:var(--er)}
+.banner.sy{background:color-mix(in srgb,var(--nt) 15%,transparent);border:1px solid var(--nt);color:var(--nt)}
+.tabs{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:14px;border:1px solid var(--bd);margin-bottom:14px}
+.tabs button{flex:1;border:0;background:none;color:var(--mu);padding:9px 2px;border-radius:10px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.tabs button.on{background:var(--ac);color:#fff}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:14px}
+.hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ring{position:relative;width:150px;height:150px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:32px}
+.ring b small{font-size:12px;color:var(--mu);font-weight:400}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-width:220px}
+.kpi{background:var(--bg);border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:22px}.kpi span{font-size:12px;color:var(--mu)}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:13px}
+.row .n{width:96px;flex:none;font-weight:600}
+.bar{flex:1;height:14px;background:var(--pe);border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:8px;transition:width .4s}
+.row .p{width:40px;text-align:right;color:var(--mu)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-bottom:10px}
+.legend s{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;text-decoration:none}
+.map{overflow:auto;border:1px solid var(--bd);border-radius:12px;max-height:70vh}
+.g{display:grid;grid-template-columns:38px repeat(22,26px);gap:2px;padding:4px;width:max-content}
+.h{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;height:78px;color:var(--mu);text-align:left;position:sticky;top:0;background:var(--card);z-index:1}
+.l{font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;position:sticky;left:0;background:var(--card);z-index:1}
+.c{width:26px;height:26px;border-radius:6px;border:0;background:var(--pe);padding:0;font-size:12px;color:#fff;cursor:pointer;position:relative}
+.c.d{background:var(--ok)}.c.n{background:transparent;border:2px solid var(--nt);color:var(--nt);font-size:10px}
+.c.p::after,.chip.p::after{content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--nt);border:2px solid var(--card)}
+.wg{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.w{background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
+.w.on{border-color:var(--ac)}.w b{font-size:16px;display:block}.w span{font-size:12px;color:var(--mu)}
+.w .bar{height:8px;margin:6px 4px 4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;border:0;border-radius:20px;padding:8px 12px;font:600 13px inherit;font-family:inherit;cursor:pointer;background:var(--pe);color:var(--tx)}
+.chip.d{background:var(--ok);color:#fff}.chip.n{background:transparent;border:2px solid var(--nt);color:var(--nt)}
+.ro .c,.ro .chip{cursor:default}
+.btn{background:none;border:1px solid var(--bd);color:var(--tx);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:13px;cursor:pointer}
+.btn.dg{border-color:var(--er);color:var(--er)}
+.hi{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.hi:last-child{border:0}.hi .t{color:var(--mu);font-size:11px}.hi>div{flex:1}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--er);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:9;max-width:90vw;display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.modal>div{background:var(--card);border-radius:16px;padding:18px;max-width:380px;width:100%}
+.modal input{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:10px 0}
+.modal code{display:block;word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;font-size:12px;margin:6px 0}
+</style></head><body>
+<div class="top">
+ <div><h1>⚡ Avance de Commissioning</h1><div class="sub" id="meta">Parque eólico · 22 WTG × 22 sistemas</div></div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="usr" onclick="openUser()">👤</button></div>
+</div>
+<div id="banner"></div>
+<div class="tabs" id="tabs"></div>
+<div id="v"></div>
+<div id="adm" style="text-align:center;margin:10px 0 20px"></div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="mu"><div id="mub"></div></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {firebaseConfig} from "./firebase-config.js";
+
+const S=["PITCH","QM1","ACUMUL","LOAD SEN","SUIG","TRAFO","YAW M+S","SOFTCV","RTCP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","MUESTRAS BAT","WIND SENSOR"];
+const NW=22,NS=22,TOT=NW*NS,PROJ=["projects","parque"];
+const K=(w,s)=>String(w).padStart(2,"0")+"-"+s;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
+const pad=n=>String(n).padStart(2,"0");
+const $=id=>document.getElementById(id);
+
+/* ---------- Datos originales de la pizarra (se cargan UNA sola vez en la nube) ---------- */
+function seedData(){
+ const D={},N={};
+ [2,3,4,5,6,7,8,11,12,13,14,15,16].forEach(s=>D[K(1,s)]=1);
+ for(let w=7;w<=18;w++)for(let s=1;s<=20;s++)D[K(w,s)]=1;
+ [15,16,17].forEach(w=>delete D[K(w,7)]);
+ delete D[K(10,16)];
+ Object.assign(N,{[K(15,7)]:"xOFFSET",[K(16,7)]:"xOFFSET",[K(17,7)]:"xOFFSET",[K(10,16)]:"(+)",[K(4,6)]:"FLEX CONT",[K(6,4)]:"2 LOAD = 1CT 1ENCOD",[K(6,6)]:"xFLEXIBLES",[K(22,6)]:"0%"});
+ return {D,N};
+}
+
+/* ---------- Estado ---------- */
+let T={};            // id -> {done,note,pending}
+let H=[];            // historial (más reciente primero)
+let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=navigator.onLine,pendingN=0,fatal=null,seedErr=null;
+let NAME=localStorage.getItem("tecnico")||"";
+const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
+const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
+const sp=s=>{let n=0;for(let w=1;w<=NW;w++)n+=done(K(w,s))?1:0;return n};
+const tot=()=>{let n=0;for(const k in T)if(T[k].done)n++;return n};
+const col=p=>p>=100?"var(--ok)":p>=70?"#84cc16":p>=40?"#f59e0b":p>0?"#f97316":"var(--pe)";
+const canEdit=()=>ready&&uid&&NAME;
+const fmt=d=>d?d.toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"…";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",5000)}
+
+/* ---------- Firebase ---------- */
+if(firebaseConfig.apiKey.startsWith("PEGAR")){
+ document.body.innerHTML='<div class="card" style="margin-top:30px"><h2>⚙️ Falta configurar Firebase</h2><p>Abrí <b>firebase-config.js</b> y pegá la configuración de tu proyecto de Firebase. Seguí la guía del README.</p></div>';
+ throw new Error("Firebase sin configurar");
+}
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+const tasksCol=collection(db,...PROJ,"tasks");
+const histCol=collection(db,...PROJ,"history");
+
+onAuthStateChanged(auth,async u=>{
+ if(!u){try{await signInAnonymously(auth)}catch(e){fatal=e.code==="auth/operation-not-allowed"?"Habilitá la autenticación anónima en Firebase (Authentication → Sign-in method).":"No se pudo iniciar sesión: "+e.message;render()}return}
+ uid=u.uid;
+ try{isAdmin=(await getDoc(doc(db,"admins",uid))).exists()}catch(e){isAdmin=false}
+ start();
+});
+
+let started=false;
+function start(){
+ if(started){render();return}started=true;
+ onSnapshot(tasksCol,{includeMetadataChanges:true},snap=>{
+  const m={};let p=0;
+  snap.forEach(d=>{const x=d.data({serverTimestamps:"estimate"});m[d.id]={done:!!x.done,note:x.note||"",pending:d.metadata.hasPendingWrites};if(d.metadata.hasPendingWrites)p++});
+  T=m;pendingN=p;fromCache=snap.metadata.fromCache;ready=true;render(true);
+  if(!snap.metadata.fromCache&&snap.size===0)seed();
+ },e=>{fatal=e.code==="permission-denied"?"Sin permisos. Revisá las reglas de Firestore y que la autenticación anónima esté activa.":"Error de sincronización: "+e.message;render()});
+ onSnapshot(query(histCol,orderBy("at","desc"),limit(100)),{includeMetadataChanges:true},snap=>{
+  H=snap.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"})}));render(true)
+ },()=>{});
+}
+
+/* Carga inicial: una sola vez. La transacción verifica meta/init, así que abrir la app nunca reinicia nada. */
+async function seed(){
+ try{
+  const {D,N}=seedData();
+  await runTransaction(db,async tx=>{
+   const init=doc(db,...PROJ,"meta","init");
+   if((await tx.get(init)).exists())return;
+   for(let w=1;w<=NW;w++)for(let s=1;s<=NS;s++){const k=K(w,s);
+    tx.set(doc(tasksCol,k),{w,s,sys:S[s-1],done:!!D[k],note:N[k]||"",by:null,byName:"Carga inicial (pizarra)",at:serverTimestamp()})}
+   tx.set(init,{at:serverTimestamp(),by:uid});
+  });
+  seedErr=null;
+ }catch(e){seedErr="No se pudo cargar los datos iniciales: "+e.message;render()}
+}
+
+/* ---------- Escritura: una tarea por vez, con historial, sin botones de guardar ---------- */
+function setTask(w,s,target,prevOverride){
+ if(!canEdit())return;
+ const k=K(w,s),prev=prevOverride??done(k),b=writeBatch(db);
+ b.update(doc(tasksCol,k),{done:target,by:uid,byName:NAME,at:serverTimestamp()});
+ b.set(doc(histCol),{w,s,sys:S[s-1],done:target,prev,by:uid,byName:NAME,at:serverTimestamp()});
+ // Con persistencia offline el commit se resuelve cuando el servidor confirma; mientras tanto la celda muestra "pendiente".
+ b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el cambio NO se guardó":"❌ El cambio no se guardó: "+e.message));
+}
+window.tg=(w,s)=>{if(!canEdit()){if(!NAME)openUser();return}setTask(w,s,!done(K(w,s)))};
+window.revert=id=>{const h=H.find(x=>x.id===id);if(!h||!isAdmin)return;if(confirm(`¿Volver WTG ${pad(h.w)} · ${h.sys} a "${h.prev?"completo":"pendiente"}"?`))setTask(h.w,h.s,h.prev)};
+
+window.restoreAll=async()=>{
+ if(!isAdmin||!confirm("⚠️ Esto vuelve TODAS las tareas a los datos originales de la pizarra. Queda registrado en el historial. ¿Continuar?"))return;
+ if(!navigator.onLine){toast("Necesitás conexión para restaurar");return}
+ try{
+  const {D,N}=seedData();let b=writeBatch(db),n=0;
+  const flush=async()=>{await b.commit();b=writeBatch(db);n=0};
+  for(let w=1;w<=NW;w++)for(let s=1;s<=NS;s++){const k=K(w,s);
+   b.update(doc(tasksCol,k),{done:!!D[k],note:N[k]||"",by:uid,byName:NAME+" (restauración)",at:serverTimestamp()});
+   if(++n>=100)await flush()}
+  b.set(doc(histCol),{w:0,s:0,sys:"TODO",done:false,prev:false,restore:true,by:uid,byName:NAME,at:serverTimestamp()});
+  await flush();toast("✅ Datos originales restaurados");
+ }catch(e){toast("❌ No se pudo restaurar: "+e.message)}
+};
+
+/* ---------- Usuario ---------- */
+window.openUser=()=>{
+ $("mub").innerHTML=`<h2>👤 ¿Quién sos?</h2><div class="sub">Tu nombre queda en el historial junto a cada cambio.</div>
+ <input id="nm" placeholder="Nombre del técnico" value="${esc(NAME)}" maxlength="30">
+ <div class="sub">Tu ID: <code>${esc(uid||"…")}</code>${isAdmin?"Sos <b>administrador</b>.":"Para ser administrador, agregá este ID en la colección <b>admins</b> (ver README)."}</div>
+ <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m(0)">Cerrar</button><button class="btn" style="background:var(--ac);color:#fff;border-color:var(--ac)" onclick="saveName()">Guardar</button></div>`;
+ $("mu").style.display="flex";setTimeout(()=>$("nm")&&$("nm").focus(),50)};
+window.$m=()=>$("mu").style.display="none";
+window.saveName=()=>{const v=$("nm").value.trim();if(!v)return;NAME=v;localStorage.setItem("tecnico",v);$m();render(true)};
+
+/* ---------- Conexión ---------- */
+addEventListener("online",()=>{online=true;render(true)});addEventListener("offline",()=>{online=false;render(true)});
+
+function status(){
+ if(fatal)return["er","Error"];
+ if(!online)return["of","Sin conexión"+(pendingN?` · ${pendingN} pendiente${pendingN>1?"s":""}`:"")];
+ if(!ready)return["sy","Conectando…"];
+ if(pendingN)return["sy",`Sincronizando ${pendingN}…`];
+ if(fromCache)return["sy","Conectando…"];
+ return["ok","En vivo"];
+}
+
+/* ---------- Vistas (mismo diseño de la app original) ---------- */
+const bar=p=>`<div class="bar"><i style="width:${p}%;background:${col(p)}"></i></div>`;
+function ring(p){const r=62,c=2*Math.PI*r;return `<div class="ring"><svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--pe)" stroke-width="16"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${p>=100?"var(--ok)":"var(--ac)"}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${c*p/100} ${c}"/></svg><b>${p.toFixed(1)}%<small>avance total</small></b></div>`}
+function vRes(){const t=tot(),p=t/TOT*100;let full=0,none=[];
+ for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
+ S.forEach((n,i)=>{if(sp(i+1)==0)none.push(n)});
+ let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${TOT-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
+ if(none.length)h+=`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`;
+ h+=`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`;
+ return h}
+function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g"><div class="h"></div>`;
+ S.forEach(n=>h+=`<div class="h">${n}</div>`);
+ for(let w=1;w<=NW;w++){h+=`<div class="l">${pad(w)}</div>`;
+  for(let s=1;s<=NS;s++){const k=K(w,s),d=done(k),nt=note(k),pe=T[k]&&T[k].pending;
+   h+=`<button class="c ${d?"d":nt?"n":""} ${pe?"p":""}" title="WTG ${pad(w)} · ${S[s-1]}${nt?" · "+esc(nt):""}" onclick="tg(${w},${s})">${d?"✓":nt?"!":""}</button>`}}
+ return h+`</div></div><div class="sub" style="margin-top:8px">Deslizá para ver todos los sistemas. Tocá un casillero para marcar/desmarcar: se actualiza en todos los dispositivos.</div>`}
+function vWtg(){let h=`<div class="wg">`;
+ for(let w=1;w<=NW;w++){const p=Math.round(wp(w)/NS*100);
+  h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span></button>`}
+ h+=`</div>`;
+ if(sel){h+=`<div class="card" style="margin-top:14px"><h2>WTG ${pad(sel)} · ${Math.round(wp(sel)/NS*100)}% completo</h2><div class="chips">`;
+  S.forEach((n,i)=>{const k=K(sel,i+1);h+=`<button class="chip ${done(k)?"d":note(k)?"n":""} ${T[k]&&T[k].pending?"p":""}" onclick="tg(${sel},${i+1})">${done(k)?"✓ ":""}${n}${!done(k)&&note(k)?" · "+esc(note(k)):""}</button>`});
+  h+=`</div></div>`}
+ else h+=`<div class="sub" style="margin-top:10px">Tocá un WTG para ver y editar sus sistemas.</div>`;
+ return h}
+function vHist(){
+ if(!H.length)return `<div class="card sub">Todavía no hay cambios registrados.</div>`;
+ return `<div class="card"><h2>Últimas modificaciones</h2>`+H.map(h=>{
+  const what=h.restore?"Restauró los datos originales":`WTG ${pad(h.w)} · ${esc(h.sys)} → ${h.done?"completo":"pendiente"}`;
+  const at=h.at&&h.at.toDate?h.at.toDate():null;
+  return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
+
+window.setSel=w=>{sel=w;render(true)};
+window.setTab=k=>{tab=k;render()};
+window.render=function(keep){
+ const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
+ $("usr").textContent="👤 "+(NAME||"Identificarme");
+ const last=H[0],at=last&&last.at&&last.at.toDate?last.at.toDate():null;
+ $("meta").textContent="Parque eólico · 22 WTG × 22 sistemas"+(last?` · Última modificación: ${fmt(at)} por ${last.byName||"—"}`:"");
+ $("banner").innerHTML=fatal?`<div class="banner of">${esc(fatal)}</div>`:seedErr?`<div class="banner of">${esc(seedErr)}</div>`
+  :!online?`<div class="banner of">📵 Sin conexión. Podés seguir marcando tareas: se enviarán solas al volver Internet. Los cambios con punto naranja aún NO están guardados en la nube.</div>`
+  :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
+  :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"";
+ document.body.classList.toggle("ro",!canEdit());
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
+ $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():vHist();
+ if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
+ $("adm").innerHTML=isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:"";
+};
+render();
+</script></body></html>
