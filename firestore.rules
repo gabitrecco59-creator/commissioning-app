@@ -48,7 +48,7 @@ service cloud.firestore {
         && request.resource.data.pieza is string
         && request.resource.data.pieza.size() > 0 && request.resource.data.pieza.size() <= 120
         && request.resource.data.don is int
-        && request.resource.data.don >= 1 && request.resource.data.don <= 22
+        && request.resource.data.don >= 1 && request.resource.data.don <= 29
         && request.resource.data.rcv is string
         && request.resource.data.rcv.size() > 0 && request.resource.data.rcv.size() <= 30;
       allow update: if signed()

@@ -98,12 +98,12 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,getDocs,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js";
 
 const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","MUESTRAS BAT","WIND SENSOR"];
 let S=[...BASE],NS=S.length;
-const NW=22,PROJ=["projects","parque"];
+const NW=29,PROJ=["projects","parque"];
 const K=(w,s)=>String(w).padStart(2,"0")+"-"+s;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
 const pad=n=>String(n).padStart(2,"0");
 const $=id=>document.getElementById(id);
@@ -223,7 +223,7 @@ window.restoreAll=async()=>{
   const {D,N}=seedData();let b=writeBatch(db),n=0;
   const flush=async()=>{await b.commit();b=writeBatch(db);n=0};
   for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=K(w,s);
-   b.update(doc(tasksCol,k),{done:!!D[k],note:N[k]||"",by:uid,byName:NAME+" (restauración)",at:serverTimestamp()});
+   b.set(doc(tasksCol,k),{w,s,done:!!D[k],note:N[k]||"",by:uid,byName:NAME+" (restauración)",at:serverTimestamp()},{merge:true});
    if(++n>=100)await flush()}
   b.set(doc(histCol),{w:0,s:0,sys:"TODO",done:false,prev:false,restore:true,by:uid,byName:NAME,at:serverTimestamp()});
   await flush();toast("✅ Datos originales restaurados");
@@ -398,6 +398,45 @@ window.addTask=()=>{
  b.set(doc(histCol),{w:0,s:+id,sys:name,nueva:true,done:false,prev:false,by:uid,byName:NAME,at:serverTimestamp()});
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ No se pudo agregar la tarea (si otro técnico agregó una al mismo tiempo, probá de nuevo)":"❌ La tarea no se guardó: "+e.message));
  $m()};
+/* ---------- Respaldo ---------- */
+const ser=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,v&&typeof v.toDate==="function"?v.toDate().toISOString():v]));
+const fdt=iso=>iso?new Date(iso).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"}):"";
+async function gather(){
+ const get=async q=>(await getDocs(q)).docs.map(d=>({id:d.id,...ser(d.data())}));
+ const [tareas,sistemas,piezas,acta,historial]=await Promise.all([get(tasksCol),get(sisCol),get(query(piezasCol,orderBy("at","asc"))),get(query(actaCol,orderBy("at","asc"))),get(query(histCol,orderBy("at","asc")))]);
+ return {tareas,sistemas,piezas,acta,historial}}
+function buildSheets(g){
+ const tm={};g.tareas.forEach(t=>{tm[t.id]=t});
+ const mat=[["WTG",...S,"Completos","% avance","Piezas pendientes"]];
+ for(let w=1;w<=NW;w++){const row=["WTG "+pad(w)];let c=0;
+  for(let q=1;q<=NS;q++){const t=tm[K(w,q)];if(t&&t.done){row.push("✓");c++}else row.push(t&&t.note?t.note:"")}
+  row.push(c,Math.round(c/NS*100)+"%",g.piezas.filter(x=>x.don===w&&!x.repuesta).length);mat.push(row)}
+ const tr=["% por sistema"];for(let q=1;q<=NS;q++){let c=0;for(let w=1;w<=NW;w++)if(tm[K(w,q)]&&tm[K(w,q)].done)c++;tr.push(Math.round(c/NW*100)+"%")}
+ mat.push(tr);
+ const piezas=[["Pieza","WTG donante","Recibe","Estado","Observaciones","Cargó","Fecha","Repuesta por","Fecha reposición"]].concat(g.piezas.map(x=>[x.pieza,"WTG "+pad(x.don),/^\d+$/.test(String(x.rcv))?"WTG "+pad(+x.rcv):x.rcv,x.repuesta?"Repuesta":"Pendiente",x.obs||"",x.byName||"",fdt(x.at),x.repByName||"",fdt(x.repAt)]));
+ const acta=[["Fecha","Técnico","WTG","Registro"]].concat(g.acta.map(a=>[fdt(a.at),a.byName||"",a.wtg||"",a.text]));
+ const hist=[["Fecha","Técnico","Cambio"]].concat(g.historial.map(h=>[fdt(h.at),h.byName||"",h.restore?"Restauró los datos originales":h.nueva?"Nueva tarea: "+h.sys:`WTG ${pad(h.w)} · ${h.s>0&&S[h.s-1]?S[h.s-1]:h.sys} → ${h.done?"completo":"pendiente"}`]));
+ return {"Matriz de avance":mat,"Piezas":piezas,"Acta":acta,"Historial":hist}}
+function dlBlob(blob,name){const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+const hoy=()=>new Date().toISOString().slice(0,10);
+window.openBackup=()=>{
+ $("mub").innerHTML=`<h2>💾 Respaldo de datos</h2><div class="sub">Descarga todo lo guardado en la nube: matriz de avance, piezas, acta e historial completo. Conviene hacerlo una vez por semana y guardarlo en la PC o en la nube de la empresa.</div>
+ <div style="display:flex;flex-direction:column;gap:8px"><button class="btn pri" onclick="doBackup('xlsx')">📊 Excel (.xlsx) con una hoja por sección</button><button class="btn" onclick="doBackup('json')">🧩 Copia completa (.json) para restaurar</button><button class="btn" onclick="$m()">Cerrar</button></div><div class="sub" id="bst" style="margin:10px 0 0"></div>`;
+ $("mu").style.display="flex"};
+window.doBackup=async tipo=>{
+ const st=$("bst");st.textContent="Preparando respaldo…";
+ try{
+  const g=await gather();
+  if(tipo==="json"){
+   dlBlob(new Blob([JSON.stringify({generado:new Date().toISOString(),proyecto:"parque-olavarria-pcr",sistemas:S,...g},null,1)],{type:"application/json"}),`respaldo-commissioning-${hoy()}.json`)
+  }else{
+   const X=await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.mjs");
+   const wb=X.utils.book_new(),sh=buildSheets(g);
+   for(const [n,rows] of Object.entries(sh)){const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=rows[0].map((_,i)=>({wch:n==="Matriz de avance"?(i===0?14:11):n==="Acta"&&i===3?90:n==="Historial"&&i===2?60:Math.min(40,Math.max(12,...rows.map(r=>String(r[i]??"").length)))}));X.utils.book_append_sheet(wb,ws,n)}
+   dlBlob(new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}),`respaldo-commissioning-${hoy()}.xlsx`)
+  }
+  localStorage.setItem("respaldo",String(Date.now()));st.textContent="✅ Respaldo descargado. Revisá la carpeta de descargas.";render(true)
+ }catch(e){st.textContent="❌ No se pudo generar el respaldo: "+e.message+(tipo==="xlsx"?". Probá con la copia completa (.json).":"")}};
 window.goWtg=w=>{sel=w;tab="wtg";render()};
 /* Detecta a qué WTG se refiere un registro: campo "WTG involucrados" + menciones "WTG 13", "WTG 5, 7 y 13" en el texto */
 function actaWtgs(a){
@@ -418,7 +457,7 @@ window.render=function(keep){
  const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
  $("usr").textContent="👤 "+(NAME||"Identificarme");$("thm").textContent=isDark()?"☀️":"🌙";
  const last=H[0],at=last&&last.at&&last.at.toDate?last.at.toDate():null;
- $("meta").innerHTML="PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas"+(last?`<br>Última modificación: ${fmt(at)} por ${esc(last.byName||"—")}`:"");
+ $("meta").innerHTML=`PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · ${NW} WTG × ${NS} sistemas`+(last?`<br>Última modificación: ${fmt(at)} por ${esc(last.byName||"—")}`:"");
  $("banner").innerHTML=fatal?`<div class="banner of">${esc(fatal)}</div>`:seedErr?`<div class="banner of">${esc(seedErr)}</div>`
   :!online?`<div class="banner of">📵 Sin conexión. Podés seguir marcando tareas: se enviarán solas al volver Internet. Los cambios con punto naranja aún NO están guardados en la nube.</div>`
   :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
@@ -428,7 +467,8 @@ window.render=function(keep){
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
  if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?vActa():tab=="pie"?vPiezas():vHist();
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
- $("adm").innerHTML=isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:"";
+ const lb=+(localStorage.getItem("respaldo")||0),dias=lb?Math.floor((Date.now()-lb)/864e5):null;
+ $("adm").innerHTML=`<button class="btn" onclick="openBackup()">💾 Descargar respaldo</button> ${isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:""}<div class="sub" style="margin:8px 0 0;${dias===null||dias>=7?"color:var(--nt);font-weight:600":""}">${dias===null?"Todavía no hiciste ningún respaldo en este dispositivo":dias===0?"Último respaldo en este dispositivo: hoy":`Último respaldo en este dispositivo: hace ${dias} día${dias>1?"s":""}`}</div>`;
 };
 render();
 </script></body></html>
