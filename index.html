@@ -130,7 +130,7 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,getDocs,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,getDocs,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,where,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js";
 
 const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","BATERÍA TEST","WIND SENSOR","MUESTRAS DE ACEITE"];
@@ -160,6 +160,7 @@ let H=[];            // historial (más reciente primero)
 let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=navigator.onLine,pendingN=0,fatal=null,seedErr=null;
 let NAME=localStorage.getItem("tecnico")||"";
 let A=[],draft="",draftW="";
+let aTipo="acta",draftC="",draftS="Mayor",draftPh=[],aFil="all",PH={},PHshow={},PHload={};
 let WX=null,WXat=0,WXerr="";
 try{const c=JSON.parse(localStorage.getItem("wx2")||"null");if(c&&c.j){WX=c.j;WXat=c.at}}catch(e){}
 let MI=+(localStorage.getItem("miwtg")||0),mapS=0;
@@ -188,6 +189,7 @@ const histCol=collection(db,...PROJ,"history");
 const actaCol=collection(db,...PROJ,"acta");
 const sisCol=collection(db,...PROJ,"sistemas");
 const piezasCol=collection(db,...PROJ,"piezas");
+const fotosCol=collection(db,...PROJ,"fotos");
 
 onAuthStateChanged(auth,async u=>{
  if(!u){try{await signInAnonymously(auth)}catch(e){fatal=e.code==="auth/operation-not-allowed"?"Habilitá la autenticación anónima en Firebase (Authentication → Sign-in method).":"No se pudo iniciar sesión: "+e.message;render()}return}
@@ -367,6 +369,7 @@ function recos(){
  const st=S.map((nn,i)=>[nn,sp(i+1)]).filter(x=>x[1]>0).sort((a,b)=>a[1]-b[1])[0];
  if(st&&st[1]<NW*0.4)R.push(["📉",`Cuello de botella: ${st[0]} avanzó solo en ${st[1]} de ${NW} WTG.`]);
  const sin=S.filter((nn,i)=>sp(i+1)==0);if(sin.length)R.push(["🚧",`Sin iniciar en ninguna WTG: ${sin.join(", ")}.`]);
+ const dn7=A.filter(a=>isDano(a)&&toD(a)&&Date.now()-toD(a).getTime()<7*864e5).length;if(dn7)R.push(["⚠️",`${dn7} daño${dn7>1?"s":""} reportado${dn7>1?"s":""} en los últimos 7 días: ver pestaña Acta → Daños y generar el reporte para la NCR.`]);
  const hoyA=A.some(x=>{const d=toD(x);return d&&d.toDateString()===new Date().toDateString()});
  if(!hoyA&&new Date().getHours()>=15)R.push(["📝","Todavía no se cargó el acta de hoy. Anotá los trabajos antes de irte."]);
  const lb=+(localStorage.getItem("respaldo")||0);if(!lb||Date.now()-lb>7*864e5)R.push(["💾","Hace más de una semana que no bajás un respaldo en este dispositivo (botón al pie)."]);
@@ -475,32 +478,155 @@ function vHist(){
 /* ---------- Acta de avances ---------- */
 const dayKey=d=>d?d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"…";
 const hhmm=d=>d?d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}):"…";
+const SEVC={Menor:"#d97706",Mayor:"#ea580c",Crítico:"var(--er)"};
+const isDano=a=>a.tipo==="dano";
+function entryHtml(a,withDate){
+ const d=toD(a),dano=isDano(a);
+ return `<div class="ae"><div class="t">${withDate&&d?d.toLocaleDateString("es-AR")+" ":""}${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.wtg&&!withDate?` · WTG ${esc(a.wtg)}`:""}${a.pending?" · ⏳ guardando…":""}${dano?` <span class="lv" style="background:${SEVC[a.sev]||SEVC.Mayor};margin-left:4px">⚠️ DAÑO${a.sev?" · "+esc(a.sev):""}</span>`:""}</div>${dano&&a.comp?`<div class="t"><b>Componente:</b> ${esc(a.comp)}</div>`:""}<div class="atx">${esc(a.text)}</div>${photoBlock(a)}${dano?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="repDano(['${a.id}'],'doc')">⬇ Reporte Word (.docx)</button><button class="btn" onclick="repDano(['${a.id}'],'pdf')">🖨 PDF / imprimir</button></div>`:""}</div>`}
+function photoBlock(a){
+ if(!a.nfotos)return "";
+ if(!PHshow[a.id])return `<button class="btn" style="margin-top:6px" onclick="showPh('${a.id}')">📷 Ver ${a.nfotos} foto${a.nfotos>1?"s":""}</button>`;
+ const L=PH[a.id];if(!L)return `<div class="sub" style="margin:6px 0 0">Cargando fotos…</div>`;
+ if(!L.length)return `<div class="sub" style="margin:6px 0 0">No se pudieron cargar las fotos (¿sin conexión?).</div>`;
+ return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${L.map((f,k)=>`<img src="${f.data}" alt="Foto ${k+1}" style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer" onclick="openImg('${a.id}',${k})">`).join("")}</div>`}
+async function getPh(id){
+ if(PH[id])return PH[id];if(PHload[id])return PHload[id];
+ return PHload[id]=(async()=>{let r=[];try{const sn=await getDocs(query(fotosCol,where("actaId","==",id)));r=sn.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);PH[id]=r}catch(e){}delete PHload[id];return r})()}
+window.showPh=async id=>{PHshow[id]=true;render(true);await getPh(id);render(true)};
+window.openImg=(id,k)=>{const f=(PH[id]||[])[k];if(!f)return;$("mub").innerHTML=`<img src="${f.data}" style="width:100%;border-radius:10px;display:block"><div style="text-align:right;margin-top:8px"><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex"};
 function actaList(){
- if(!A.length)return `<div class="sub">Todavía no hay registros. Escribí el primero arriba.</div>`;
+ const L=A.filter(a=>aFil==="all"||(aFil==="dano")===isDano(a));
+ if(!L.length)return `<div class="sub">${A.length?"No hay registros de este tipo.":"Todavía no hay registros. Escribí el primero arriba."}</div>`;
  let h="",last="";
- A.forEach(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null,k=dayKey(d);
+ L.forEach(a=>{const d=toD(a),k=dayKey(d);
   if(k!==last){h+=`<div class="ad">${esc(k)}</div>`;last=k}
-  h+=`<div class="ae"><div class="t">${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.wtg?` · WTG ${esc(a.wtg)}`:""}${a.pending?" · ⏳ guardando…":""}</div><div class="atx">${esc(a.text)}</div></div>`});
+  h+=entryHtml(a,false)});
  return h}
+const nDano=()=>A.filter(isDano).length;
+function phThumbs(){return draftPh.map((f,i)=>`<span style="position:relative;display:inline-block;margin:0 6px 6px 0"><img src="${f.data}" style="width:78px;height:78px;object-fit:cover;border-radius:10px;border:1px solid var(--bd)"><button class="btn" style="position:absolute;top:-6px;right:-6px;padding:0 6px;border-radius:50%;background:var(--card)" onclick="rmFoto(${i})" aria-label="Quitar foto">✕</button></span>`).join("")}
 function vActa(){
- return `<div class="card acta-form"><h2>📝 Nuevo registro</h2>
- <textarea id="atx" maxlength="2000" rows="4" placeholder="Ej: Hoy se hicieron los motores de yaw y se cambió el encoder del generador" oninput="setDraft(this.value)">${esc(draft)}</textarea>
- <input id="aw" placeholder="WTG involucrados (opcional, ej: 05, 07)" maxlength="40" value="${esc(draftW)}" oninput="setDraftW(this.value)">
- <button class="btn pri" onclick="addActa()">Registrar en el acta</button>
- <div class="sub" style="margin:8px 0 0">Cada registro queda guardado con fecha, hora y tu nombre. No se puede editar ni borrar: si hay un error, agregá una corrección.</div></div>
- <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div><div id="alist">${actaList()}</div></div>`}
-window.setDraft=v=>{draft=v};window.setDraftW=v=>{draftW=v};
+ const dn=aTipo==="dano";
+ return `<div class="card acta-form"><h2>${dn?"⚠️ Reportar daño (para NCR)":"📝 Nuevo registro"}</h2>
+ <div class="chips" style="margin-bottom:10px"><button class="chip ${dn?"":"d"}" onclick="setTipo('acta')">📝 Registro de acta</button><button class="chip ${dn?"d":""}" style="${dn?"background:var(--er)":""}" onclick="setTipo('dano')">⚠️ Daño (NCR)</button></div>
+ ${dn?`<input class="pi" id="ac" maxlength="80" placeholder="Componente / sistema dañado (ej: Pala B, encoder de yaw)" value="${esc(draftC)}" oninput="setDraftC(this.value)"><div class="sub" style="margin:0 0 4px">Severidad</div><select onchange="setDraftS(this.value)">${["Menor","Mayor","Crítico"].map(v=>`<option ${draftS===v?"selected":""}>${v}</option>`).join("")}</select>`:""}
+ <textarea id="atx" maxlength="2000" rows="4" placeholder="${dn?"Describí el daño: qué pasó, dónde, cuándo y cómo se detectó":"Ej: Hoy se hicieron los motores de yaw y se cambió el encoder del generador"}" oninput="setDraft(this.value)">${esc(draft)}</textarea>
+ <input id="aw" placeholder="${dn?"WTG afectada (obligatorio, ej: 05)":"WTG involucrados (opcional, ej: 05, 07)"}" maxlength="40" value="${esc(draftW)}" oninput="setDraftW(this.value)">
+ <div id="pht">${phThumbs()}</div>
+ <label class="btn" style="display:inline-block;margin-bottom:10px;cursor:pointer">📷 Agregar fotos (hasta 4)<input type="file" accept="image/*" multiple style="display:none" onchange="addFotos(this)"></label>
+ <div><button class="btn pri" style="${dn?"background:var(--er);border-color:var(--er)":""}" onclick="addActa()">${dn?"Registrar daño":"Registrar en el acta"}</button></div>
+ <div class="sub" style="margin:8px 0 0">Cada registro queda guardado con fecha, hora y tu nombre. No se puede editar ni borrar: si hay un error, agregá una corrección. ${dn?"Con el daño registrado se genera un reporte descargable con las fotos.":""}</div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div>
+ <div class="chips" style="margin:6px 0 8px"><button class="chip ${aFil==="all"?"d":""}" onclick="setAFil('all')">Todo (${A.length})</button><button class="chip ${aFil==="acta"?"d":""}" onclick="setAFil('acta')">📝 Actas (${A.length-nDano()})</button><button class="chip ${aFil==="dano"?"d":""}" onclick="setAFil('dano')">⚠️ Daños (${nDano()})</button>${nDano()?`<button class="btn" onclick="repAll()">⬇ Reporte de todos los daños</button>`:""}</div>
+ <div id="alist">${actaList()}</div></div>`}
+window.setDraft=v=>{draft=v};window.setDraftW=v=>{draftW=v};window.setDraftC=v=>{draftC=v};window.setDraftS=v=>{draftS=v};
+window.setTipo=t=>{aTipo=t;render()};window.setAFil=f=>{aFil=f;render()};
+window.rmFoto=i=>{draftPh.splice(i,1);$("pht").innerHTML=phThumbs()};
+async function shrink(file){
+ const url=URL.createObjectURL(file);
+ try{const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+  let max=1280,q=.72,out,w,h;
+  for(let t=0;t<7;t++){const sc=Math.min(1,max/Math.max(img.width,img.height));w=Math.max(1,Math.round(img.width*sc));h=Math.max(1,Math.round(img.height*sc));
+   const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);out=c.toDataURL("image/jpeg",q);
+   if(out.length<=330000)break;max*=.85;q=Math.max(.45,q-.05)}
+  if(out.length>420000)throw new Error("grande");
+  return {data:out,w,h}}finally{URL.revokeObjectURL(url)}}
+window.addFotos=async inp=>{
+ const fs=[...inp.files];inp.value="";let bad=0;
+ for(const f of fs){if(draftPh.length>=4){toast("Máximo 4 fotos por registro");break}
+  try{draftPh.push(await shrink(f))}catch(e){bad++}}
+ if(bad)toast("No se pudo leer "+bad+" foto"+(bad>1?"s":"")+" (formato no compatible)");
+ $("pht").innerHTML=phThumbs()};
 window.addActa=()=>{
  if(!canEdit()){if(!NAME)openUser();return}
- const text=draft.trim();if(!text){toast("Escribí algo para registrar");return}
- const b=writeBatch(db);
- b.set(doc(actaCol),{text,wtg:draftW.trim(),by:uid,byName:NAME,at:serverTimestamp()});
- b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el registro NO se guardó":"❌ El registro no se guardó: "+e.message));
- draft="";draftW="";render();
+ const text=draft.trim(),dn=aTipo==="dano";if(!text){toast(dn?"Describí el daño":"Escribí algo para registrar");return}
+ if(dn&&!/\d/.test(draftW)){toast("Indicá la WTG afectada (ej: 05)");return}
+ const b=writeBatch(db),ref=doc(actaCol),ph=draftPh.slice();
+ const data={text,wtg:draftW.trim(),tipo:aTipo,nfotos:ph.length,by:uid,byName:NAME,at:serverTimestamp()};
+ if(dn){data.comp=draftC.trim();data.sev=draftS}
+ b.set(ref,data);
+ ph.forEach((f,i)=>b.set(doc(fotosCol),{actaId:ref.id,i,data:f.data,w:f.w,h:f.h,by:uid,at:serverTimestamp()}));
+ if(ph.length)PH[ref.id]=ph.map((f,i)=>({...f,i,actaId:ref.id}));
+ b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el registro NO se guardó (¿publicaste las reglas nuevas?)":"❌ El registro no se guardó: "+e.message));
+ draft="";draftW="";draftC="";draftPh=[];render();
 };
+
+/* ---------- Reporte de daño (para NCR): Word (.doc con fotos incrustadas) o PDF desde imprimir ---------- */
+const rid=a=>{const d=toD(a)||new Date();return "RD-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"-"+String(a.id).slice(0,4).toUpperCase()};
+function repEntry(a,ph,src){
+ const d=toD(a)||new Date(),r=(k,v)=>`<tr><td class="k">${k}</td><td>${v||"&nbsp;"}</td></tr>`;
+ return `<div class="pg"><h1>REPORTE DE DAÑO <span>(base para NCR)</span></h1>
+ <table>${r("N° de reporte",rid(a))}${r("Proyecto","PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW")}${r("Fecha y hora",d.toLocaleString("es-AR"))}${r("WTG afectada",esc(a.wtg))}${r("Componente / sistema",esc(a.comp))}${r("Severidad",esc(a.sev))}${r("Reportado por",esc(a.byName))}</table>
+ <h2>Descripción del daño</h2><div class="box">${esc(a.text).replace(/\n/g,"<br>")}</div>
+ <h2>Evidencia fotográfica (${ph.length})</h2>${ph.length?ph.map((f,k)=>{const wd=Math.min(460,f.w>=f.h?460:Math.round(340*f.w/f.h)),ht=Math.round(wd*f.h/f.w);return `<p class="ph"><img src="${src(a,k,f)}" width="${wd}" height="${ht}"><br><i>Foto ${k+1}</i></p>`}).join(""):`<div class="box">Sin fotos adjuntas.</div>`}
+ <h2>A completar por el responsable</h2>
+ <table>${r("N° de NCR asignado","")}${r("Causa probable","<br><br>")}${r("Acción correctiva / contención","<br><br>")}${r("Responsable","")}${r("Fecha límite","")}${r("Revisó / aprobó","")}${r("Cierre (fecha y firma)","")}</table></div>`}
+const REPCSS=`body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111}h1{font-size:18pt;margin:0 0 10px;border-bottom:3px solid #d97706;padding-bottom:4px}h1 span{font-size:10pt;font-weight:normal;color:#666}h2{font-size:12pt;margin:14px 0 6px;color:#333}table{border-collapse:collapse;width:100%}td{border:1px solid #999;padding:5px 8px;vertical-align:top}td.k{width:34%;background:#f0f0f0;font-weight:bold}.box{border:1px solid #999;padding:8px;min-height:30px}.ph{margin:6px 0;page-break-inside:avoid}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}`;
+/* Generador mínimo de .docx (zip sin compresión + XML de Word), sin librerías externas */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0};
+function zipStore(files){ // files: [{name,data:Uint8Array}]
+ const enc=new TextEncoder(),parts=[],cd=[];let off=0;
+ const now=new Date(),dt=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate(),tm=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1);
+ for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),n=f.data.length;
+  const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);lh.setUint16(10,tm,true);lh.setUint16(12,dt,true);lh.setUint32(14,crc,true);lh.setUint32(18,n,true);lh.setUint32(22,n,true);lh.setUint16(26,nm.length,true);lh.setUint16(28,0,true);
+  parts.push(new Uint8Array(lh.buffer),nm,f.data);
+  const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);ch.setUint16(12,tm,true);ch.setUint16(14,dt,true);ch.setUint32(16,crc,true);ch.setUint32(20,n,true);ch.setUint32(24,n,true);ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+  cd.push(new Uint8Array(ch.buffer),nm);off+=30+nm.length+n}
+ let cdl=0;cd.forEach(x=>cdl+=x.length);
+ const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cdl,true);e.setUint32(16,off,true);
+ const all=[...parts,...cd,new Uint8Array(e.buffer)];let tot=0;all.forEach(x=>tot+=x.length);const out=new Uint8Array(tot);let o=0;all.forEach(x=>{out.set(x,o);o+=x.length});return out}
+const xe=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"");
+function dlDocx(L,P2,rid){
+ const enc=new TextEncoder(),media=[],NS_="xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"";
+ const run=(t,o={})=>{const lines=String(t??"").split("\n");return `<w:r><w:rPr>${o.b?"<w:b/>":""}${o.i?"<w:i/>":""}${o.c?`<w:color w:val="${o.c}"/>`:""}<w:sz w:val="${(o.sz||11)*2}"/></w:rPr>${lines.map((l,k)=>(k?"<w:br/>":"")+`<w:t xml:space="preserve">${xe(l)}</w:t>`).join("")}</w:r>`};
+ const para=(runs,o={})=>`<w:p><w:pPr>${o.bb?`<w:pBdr><w:bottom w:val="single" w:sz="18" w:space="4" w:color="D97706"/></w:pBdr>`:""}<w:spacing w:before="${o.before||0}" w:after="${o.after==null?80:o.after}"/>${o.center?'<w:jc w:val="center"/>':""}</w:pPr>${runs}</w:p>`;
+ const brd=`<w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(k=>`<w:${k} w:val="single" w:sz="4" w:space="0" w:color="999999"/>`).join("")}</w:tblBorders>`;
+ const cell=(w,inner,shade)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${shade?`<w:shd w:val="clear" w:color="auto" w:fill="F0F0F0"/>`:""}</w:tcPr>${inner}</w:tc>`;
+ const tbl=rows=>`<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/>${brd}<w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>${rows.map(([k,v,tall])=>`<w:tr>${cell(3300,para(run(k,{b:1}),{after:0}),1)}${cell(6338,para(run(v||" ",{}),{after:0})+(tall?para("",{after:0})+para("",{after:0}):""))}</w:tr>`).join("")}</w:tbl>`;
+ const img=(f)=>{const n=media.length+1;media.push({name:`image${n}.jpg`,data:Uint8Array.from(atob(f.data.split(",")[1]),c=>c.charCodeAt(0))});
+  const wd=f.w>=f.h?420:Math.round(300*f.w/f.h),ht=Math.round(wd*f.h/f.w),cx=wd*9525,cy=ht*9525;
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Foto ${n}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImg${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`};
+ let body="";
+ L.forEach((a,idx)=>{const d=toD(a)||new Date(),ph=P2[a.id]||[];
+  if(idx)body+=`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+  body+=para(run("REPORTE DE DAÑO ",{b:1,sz:18})+run("(base para NCR)",{sz:10,c:"666666"}),{bb:1,after:160});
+  body+=tbl([["N° de reporte",rid(a)],["Proyecto","PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW"],["Fecha y hora",d.toLocaleString("es-AR")],["WTG afectada",a.wtg||""],["Componente / sistema",a.comp||""],["Severidad",a.sev||""],["Reportado por",a.byName||""]]);
+  body+=para(run("Descripción del daño",{b:1,sz:12,c:"333333"}),{before:200,after:80});
+  body+=`<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/>${brd}<w:tblCellMar><w:top w:w="80" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tr>${cell(9638,para(run(a.text||" "),{after:0}))}</w:tr></w:tbl>`;
+  body+=para(run(`Evidencia fotográfica (${ph.length})`,{b:1,sz:12,c:"333333"}),{before:200,after:80});
+  if(!ph.length)body+=para(run("Sin fotos adjuntas.",{i:1}));
+  ph.forEach((f,k)=>{body+=para(img(f),{after:20})+para(run(`Foto ${k+1}`,{i:1,sz:9,c:"666666"}),{after:120})});
+  body+=para(run("A completar por el responsable",{b:1,sz:12,c:"333333"}),{before:200,after:80});
+  body+=tbl([["N° de NCR asignado",""],["Causa probable","",1],["Acción correctiva / contención","",1],["Responsable",""],["Fecha límite",""],["Revisó / aprobó",""],["Cierre (fecha y firma)",""]]);
+ });
+ const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS_}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+ const files=[
+  {name:"[Content_Types].xml",data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`)},
+  {name:"_rels/.rels",data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`)},
+  {name:"word/document.xml",data:enc.encode(doc)},
+  {name:"word/_rels/document.xml.rels",data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${media.map((m,i)=>`<Relationship Id="rIdImg${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`).join("")}</Relationships>`)},
+  ...media.map(m=>({name:"word/media/"+m.name,data:m.data}))];
+ return zipStore(files)}
+async function reportFor(ids,mode){
+ const L=ids.map(id=>A.find(x=>x.id===id)).filter(Boolean).sort((a,b)=>(toD(a)||0)-(toD(b)||0));
+ if(!L.length){toast("No hay daños para reportar");return}
+ toast("Preparando reporte…",true);
+ const P2={};for(const a of L)P2[a.id]=a.nfotos?await getPh(a.id):[];
+ if(L.some(a=>a.nfotos&&!(P2[a.id]||[]).length))toast("Aviso: alguna foto no se pudo cargar (¿sin conexión?). El reporte sale sin ella.");
+ const stamp=new Date().toISOString().slice(0,10),nm=L.length===1?rid(L[0]):"reportes-danos-"+stamp;
+ if(mode==="pdf"){
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${nm}</title><style>${REPCSS}@page{margin:16mm}</style></head><body>${L.map(a=>repEntry(a,P2[a.id],(x,k,f)=>f.data)).join("")}</body></html>`;
+  const fr=document.createElement("iframe");fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";document.body.appendChild(fr);
+  fr.onload=()=>{try{fr.contentWindow.focus();fr.contentWindow.print()}catch(e){toast("No se pudo abrir la impresión: usá el reporte Word")}setTimeout(()=>fr.remove(),120000)};fr.srcdoc=html;return}
+ const bytes=dlDocx(L,P2,rid);
+ dlBlob(new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}),nm+".docx");toast("✅ Reporte descargado",true)}
+window.repDano=(ids,mode)=>reportFor(ids,mode).catch(e=>toast("❌ No se pudo generar el reporte: "+e.message));
+window.repAll=()=>{const ids=A.filter(isDano).map(a=>a.id);
+ $("mub").innerHTML=`<h2>⚠️ Reporte de todos los daños (${ids.length})</h2><div class="sub">Un solo documento con una página por daño, con sus fotos y los campos para completar la NCR.</div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn pri" id="ra1">⬇ Word (.docx)</button><button class="btn" id="ra2">🖨 PDF / imprimir</button><button class="btn" onclick="$m()">Cerrar</button></div>`;
+ $("mu").style.display="flex";$("ra1").onclick=()=>{$m();repDano(ids,"doc")};$("ra2").onclick=()=>{$m();repDano(ids,"pdf")}};
 window.dlActa=()=>{
  const t="ACTA DE AVANCES - COMMISSIONING\n\n"+[...A].reverse().map(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null;
-  return `[${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)}] ${a.byName||"—"}${a.wtg?" (WTG "+a.wtg+")":""}\n${a.text}\n`}).join("\n");
+  return `[${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)}] ${isDano(a)?"[DAÑO"+(a.sev?" "+a.sev:"")+(a.comp?" · "+a.comp:"")+"] ":""}${a.byName||"—"}${a.wtg?" (WTG "+a.wtg+")":""}${a.nfotos?" · "+a.nfotos+" foto(s)":""}\n${a.text}\n`}).join("\n");
  const u=URL.createObjectURL(new Blob([t],{type:"text/plain;charset=utf-8"})),l=document.createElement("a");
  l.href=u;l.download="acta-avances-"+new Date().toISOString().slice(0,10)+".txt";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)};
 
@@ -614,7 +740,7 @@ function buildSheets(g){
  const tr=["% por sistema"];for(let q=1;q<=NS;q++){let c=0;for(let w=1;w<=NW;w++)if(tm[K(w,q)]&&tm[K(w,q)].done)c++;tr.push(Math.round(c/NW*100)+"%")}
  mat.push(tr);
  const piezas=[["Pieza","WTG donante","Recibe","Estado","Observaciones","Cargó","Fecha","Repuesta por","Fecha reposición"]].concat(g.piezas.map(x=>[x.pieza,"WTG "+pad(x.don),/^\d+$/.test(String(x.rcv))?"WTG "+pad(+x.rcv):x.rcv,x.repuesta?"Repuesta":"Pendiente",x.obs||"",x.byName||"",fdt(x.at),x.repByName||"",fdt(x.repAt)]));
- const acta=[["Fecha","Técnico","WTG","Registro"]].concat(g.acta.map(a=>[fdt(a.at),a.byName||"",a.wtg||"",a.text]));
+ const acta=[["Fecha","Tipo","Técnico","WTG","Componente","Severidad","Fotos","Registro"]].concat(g.acta.map(a=>[fdt(a.at),a.tipo==="dano"?"DAÑO":"Acta",a.byName||"",a.wtg||"",a.comp||"",a.sev||"",a.nfotos||0,a.text]));
  const hist=[["Fecha","Técnico","Cambio"]].concat(g.historial.map(h=>[fdt(h.at),h.byName||"",h.restore?"Restauró los datos originales":h.nueva?"Nueva tarea: "+h.sys:`WTG ${pad(h.w)} · ${h.s>0&&S[h.s-1]?S[h.s-1]:h.sys} → ${h.done?"completo":"pendiente"}`]));
  return {"Matriz de avance":mat,"Piezas":piezas,"Acta":acta,"Historial":hist}}
 function dlBlob(blob,name){const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
@@ -632,7 +758,7 @@ window.doBackup=async tipo=>{
   }else{
    const X=await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.mjs");
    const wb=X.utils.book_new(),sh=buildSheets(g);
-   for(const [n,rows] of Object.entries(sh)){const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=rows[0].map((_,i)=>({wch:n==="Matriz de avance"?(i===0?14:11):n==="Acta"&&i===3?90:n==="Historial"&&i===2?60:Math.min(40,Math.max(12,...rows.map(r=>String(r[i]??"").length)))}));X.utils.book_append_sheet(wb,ws,n)}
+   for(const [n,rows] of Object.entries(sh)){const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=rows[0].map((_,i)=>({wch:n==="Matriz de avance"?(i===0?14:11):n==="Acta"&&i===7?90:n==="Historial"&&i===2?60:Math.min(40,Math.max(12,...rows.map(r=>String(r[i]??"").length)))}));X.utils.book_append_sheet(wb,ws,n)}
    dlBlob(new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}),`respaldo-commissioning-${hoy()}.xlsx`)
   }
   localStorage.setItem("respaldo",String(Date.now()));st.textContent="✅ Respaldo descargado. Revisá la carpeta de descargas.";render(true)
@@ -646,11 +772,10 @@ function actaWtgs(a){
  while((m=re.exec(String(a.text||"")))){(m[1].match(/\d{1,2}/g)||[]).forEach(n=>set.add(+n))}
  return set}
 function wtgActa(w){
- const L=A.filter(a=>actaWtgs(a).has(w));
- let h=`<div class="card"><h2>📝 Acta de la WTG ${pad(w)} · ${L.length} registro${L.length==1?"":"s"}</h2>`;
+ const L=A.filter(a=>actaWtgs(a).has(w)),nd=L.filter(isDano).length;
+ let h=`<div class="card"><h2>📝 Acta de la WTG ${pad(w)} · ${L.length} registro${L.length==1?"":"s"}${nd?` · ⚠️ ${nd} daño${nd>1?"s":""}`:""}</h2>`;
  if(!L.length)return h+`<div class="sub">Todavía no hay registros del acta para esta WTG. Aparecen cuando el texto menciona "WTG ${pad(w)}" o la cargás en el campo de WTG involucrados.</div></div>`;
- return h+L.map(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null;
-  return `<div class="ae"><div class="t">${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.pending?" · ⏳ guardando…":""}</div><div class="atx">${esc(a.text)}</div></div>`}).join("")+`</div>`}
+ return h+L.map(a=>entryHtml(a,true)).join("")+`</div>`}
 window.setMapS=n=>{mapS=mapS===n||!n?0:n;render(true)};
 window.setSel=w=>{sel=w;render(true)};
 window.setTab=k=>{tab=k;render()};

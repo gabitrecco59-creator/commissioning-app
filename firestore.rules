@@ -36,7 +36,22 @@ service cloud.firestore {
         && request.resource.data.by == request.auth.uid
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 2000;
+        && request.resource.data.text.size() <= 2000
+        && (!('tipo' in request.resource.data) || request.resource.data.tipo in ['acta','dano'])
+        && (!('nfotos' in request.resource.data) || (request.resource.data.nfotos is int && request.resource.data.nfotos <= 4))
+        && (!('comp' in request.resource.data) || (request.resource.data.comp is string && request.resource.data.comp.size() <= 80))
+        && (!('sev' in request.resource.data) || request.resource.data.sev in ['Menor','Mayor','Crítico']);
+      allow update, delete: if false;
+    }
+
+    // Fotos del acta / daños (comprimidas en el navegador, una por documento). Solo se agregan.
+    match /projects/{project}/fotos/{fid} {
+      allow read: if signed();
+      allow create: if signed()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.actaId is string
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 450000;
       allow update, delete: if false;
     }
 
