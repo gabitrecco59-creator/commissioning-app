@@ -82,6 +82,12 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .ad{font-weight:700;font-size:13px;text-transform:capitalize;margin:14px 0 6px;color:var(--ac)}
 .ae{padding:9px 0;border-bottom:1px solid var(--bd)}.ae:last-child{border:0}.ae .t{color:var(--mu);font-size:12px;margin-bottom:3px}
 .atx{white-space:pre-wrap;word-break:break-word;font-size:14px}
+.big{padding:13px 16px;font-size:15px}
+.tl{margin:0 0 10px;font-size:13px}
+.hero2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.l{flex-direction:column;line-height:1}.l small{font-size:8px;color:var(--mu);font-weight:600;margin-top:1px}
+.h{cursor:pointer}.h.on{color:var(--ac)}
+.age{font-size:11px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:4px;border:1px solid currentColor}
 @media print{.top,#banner,.tabs,#adm,.acta-form,.btn,.toast{display:none!important}body{padding:0;max-width:none}.card{border:0}}
 </style></head><body>
 <div class="top">
@@ -128,6 +134,7 @@ let H=[];            // historial (más reciente primero)
 let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=navigator.onLine,pendingN=0,fatal=null,seedErr=null;
 let NAME=localStorage.getItem("tecnico")||"";
 let A=[],draft="",draftW="";
+let MI=+(localStorage.getItem("miwtg")||0),mapS=0;
 let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:""};
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
 const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
@@ -138,7 +145,7 @@ const canEdit=()=>ready&&uid&&NAME;
 const fmt=d=>d?d.toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"…";
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",5000)}
+function toast(m,ok){const t=$("toast");t.style.background=ok?"var(--ok)":"";t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",5000)}
 
 /* ---------- Firebase ---------- */
 if(firebaseConfig.apiKey.startsWith("PEGAR")){
@@ -170,7 +177,7 @@ function start(){
   T=m;pendingN=p;fromCache=snap.metadata.fromCache;ready=true;render(true);
   if(!snap.metadata.fromCache&&snap.size===0)seed();
  },e=>{fatal=e.code==="permission-denied"?"Sin permisos. Revisá las reglas de Firestore y que la autenticación anónima esté activa.":"Error de sincronización: "+e.message;render()});
- onSnapshot(query(histCol,orderBy("at","desc"),limit(100)),{includeMetadataChanges:true},snap=>{
+ onSnapshot(query(histCol,orderBy("at","desc"),limit(300)),{includeMetadataChanges:true},snap=>{
   H=snap.docs.map(d=>({id:d.id,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
  onSnapshot(query(actaCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
@@ -255,26 +262,78 @@ function status(){
 /* ---------- Vistas (mismo diseño de la app original) ---------- */
 const bar=p=>`<div class="bar"><i style="width:${p}%;background:${col(p)}"></i></div>`;
 function ring(p){const r=62,c=2*Math.PI*r;return `<div class="ring"><svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--pe)" stroke-width="16"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${p>=100?"var(--ok)":"var(--ac)"}" stroke-width="16" stroke-linecap="round" stroke-dasharray="${c*p/100} ${c}"/></svg><b>${p.toFixed(1)}%<small>avance total</small></b></div>`}
+
+/* ---------- Ayudas nuevas: hoy, mi WTG, parte del día ---------- */
+const toD=x=>x&&x.at&&x.at.toDate?x.at.toDate():null;
+const dias=d=>d?Math.max(0,Math.floor((Date.now()-d.getTime())/864e5)):0;
+function hoyStats(){
+ const now=new Date(),by={},wt=new Set();let c=0,u=0;
+ H.forEach(h=>{if(h.restore||h.nueva)return;const d=toD(h)||(h.pending?now:null);if(!d||d.toDateString()!==now.toDateString())return;
+  if(h.done){c++;by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;wt.add(h.w)}else u++});
+ return {c,u,by,wt:[...wt].sort((a,b)=>a-b)}}
+const faltan=w=>S.map((n,i)=>done(K(w,i+1))?null:n).filter(Boolean);
+window.setMi=v=>{MI=+v||0;try{localStorage.setItem("miwtg",String(MI))}catch(e){}render(true)};
+function miWtg(){
+ const opts=`<option value="">Elegir mi WTG…</option>`+Array.from({length:NW},(_,i)=>`<option value="${i+1}" ${MI===i+1?"selected":""}>WTG ${pad(i+1)}</option>`).join("");
+ let h=`<div class="card"><h2>📍 Mi WTG</h2><select onchange="setMi(this.value)" style="margin-bottom:${MI?10:0}px">${opts}</select>`;
+ if(MI){const p=Math.round(wp(MI)/NS*100),f=faltan(MI),pz=pp(MI);
+  h+=`<div class="row" style="margin:0 0 10px"><b style="width:auto">${p}%</b>${bar(p)}<span class="p" style="width:auto">${wp(MI)}/${NS}</span></div>`;
+  if(!f.length)h+=`<div class="tl" style="color:var(--ok);font-weight:700">🎉 Sistemas completos${pz?` · pero tiene ${pz} pieza${pz>1?"s":""} sin reponer 🔧`:""}</div>`;
+  else h+=`<div class="tl">Faltan <b>${f.length}</b>${pz?` · 🔧 ${pz} pieza${pz>1?"s":""} sin reponer`:""}. Tocá para marcar:</div>`;
+  h+=`<div class="chips">`+S.map((n,i)=>({n,i,d:done(K(MI,i+1))})).sort((a,b)=>a.d-b.d).map(({n,i,d})=>{const k=K(MI,i+1);return `<button class="chip big ${d?"d":note(k)?"n":""} ${T[k]&&T[k].pending?"p":""}" onclick="tg(${MI},${i+1})">${d?"✓ ":""}${n}${!d&&note(k)?" · "+esc(note(k)):""}</button>`}).join("")+`</div><div style="margin-top:10px"><button class="btn" onclick="goWtg(${MI})">Ver ficha completa (piezas y acta)</button></div>`}
+ return h+`</div>`}
+function hoyCard(){
+ const a=hoyStats(),ac=A.filter(x=>{const d=toD(x)||(x.pending?new Date():null);return d&&d.toDateString()===new Date().toDateString()}).length;
+ const who=Object.entries(a.by).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`${esc(n)} <b>${c}</b>`).join(" · ");
+ return `<div class="card"><h2>📅 Hoy</h2><div class="hero2"><div class="kpi"><b style="color:var(--ok)">${a.c}</b><span>tareas completadas</span></div><div class="kpi"><b>${a.wt.length}</b><span>WTG con avance</span></div><div class="kpi"><b>${ac}</b><span>registros de acta</span></div></div>`+
+  (a.c?`<div class="tl">${who}</div><div class="tl" style="margin:0">WTG: ${a.wt.map(pad).join(", ")}${a.u?` · ↩ ${a.u} desmarcada${a.u>1?"s":""}`:""}</div>`:`<div class="sub" style="margin:0">Todavía no se marcó nada hoy.</div>`)+`<div style="margin-top:10px"><button class="btn pri" onclick="copiarParte()">📋 Copiar parte del día</button> <span class="sub" style="margin-left:6px">para pegar en WhatsApp</span></div></div>`}
+function cercaCard(){
+ const L=[];for(let w=1;w<=NW;w++){const f=faltan(w),q=f.length+pp(w);if(q>0&&wp(w)>0)L.push([w,f,q])}
+ L.sort((a,b)=>a[2]-b[2]||a[0]-b[0]);if(!L.length)return "";
+ return `<div class="card"><h2>🏁 Más cerca de cerrar</h2>`+L.slice(0,5).map(([w,f,q])=>{const p=Math.round(wp(w)/NS*100);return `<div style="cursor:pointer;margin:8px 0" onclick="goWtg(${w})"><div class="row" style="margin:0"><span class="n" style="width:70px">WTG ${pad(w)}</span>${bar(p)}<span class="p" style="width:70px">${q} falta${q>1?"n":""}</span></div><div class="sub" style="margin:2px 0 0 78px;font-size:12px">${f.slice(0,3).map(esc).join(", ")}${f.length>3?` +${f.length-3}`:""}${pp(w)?` · 🔧${pp(w)} pieza${pp(w)>1?"s":""}`:""}</div></div>`}).join("")+`</div>`}
+window.copiarParte=async()=>{
+ const t=tot(),tt=NW*NS,a=hoyStats(),now=new Date();let full=0;for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
+ const L=[`📊 *PARTE DE COMMISSIONING*`,`PE Olavarria PCR · ${now.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"})}`,"",
+  `Avance total: *${(t/tt*100).toFixed(1)}%* (${t}/${tt})`,`WTG al 100%: ${full}/${NW}`,"",
+  `✅ Hoy: ${a.c} tarea${a.c==1?"":"s"} completada${a.c==1?"":"s"}${a.c?` en WTG ${a.wt.map(pad).join(", ")}`:""}`];
+ if(a.c)L.push("   "+Object.entries(a.by).map(([n,c])=>`${n} (${c})`).join(", "));
+ const cl=[];for(let w=1;w<=NW;w++){const f=faltan(w),q=f.length+pp(w);if(q>0&&wp(w)>0)cl.push([w,f,q])}
+ cl.sort((x,y)=>x[2]-y[2]);
+ if(cl.length){L.push("","🏁 Más cerca de cerrar:");cl.slice(0,3).forEach(([w,f,q])=>L.push(`• WTG ${pad(w)}: faltan ${f.slice(0,4).join(", ")}${f.length>4?"…":""}${pp(w)?` + ${pp(w)} pieza(s)`:""}`))}
+ const pend=P.filter(x=>!x.repuesta);
+ if(pend.length){L.push("",`🔧 Piezas sin reponer (${pend.length}):`);const by={};pend.forEach(x=>{(by[x.don]=by[x.don]||[]).push(x)});
+  Object.keys(by).sort((x,y)=>by[y].length-by[x].length).forEach(w=>{const old=Math.max(...by[w].map(x=>dias(toD(x))));L.push(`• WTG ${pad(w)}: ${by[w].map(x=>x.pieza).slice(0,4).join("; ")}${by[w].length>4?"…":""}${old>=3?` (${old} d)`:""}`)})}
+ const sin=S.filter((n,i)=>sp(i+1)==0);if(sin.length)L.push("",`🚧 Sin iniciar: ${sin.join(", ")}`);
+ const ah=A.filter(x=>{const d=toD(x);return d&&d.toDateString()===now.toDateString()}).reverse();
+ if(ah.length){L.push("","📝 Acta de hoy:");ah.forEach(x=>L.push(`• ${hhmm(toD(x))} ${x.byName||""}: ${String(x.text).replace(/\s+/g," ").slice(0,220)}`))}
+ const txt=L.join("\n");
+ try{await navigator.clipboard.writeText(txt);toast("✅ Parte copiado. Pegalo en WhatsApp.",true)}
+ catch(e){try{const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();const ok=document.execCommand("copy");ta.remove();if(ok){toast("✅ Parte copiado. Pegalo en WhatsApp.",true);return}}catch(e2){}
+  $("mub").innerHTML=`<h2>Parte del día</h2><textarea id="ptx" rows="12" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:12px/1.4 inherit">${esc(txt)}</textarea><div style="text-align:right;margin-top:8px"><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex";setTimeout(()=>{const x=$("ptx");x&&x.select()},50)}};
 function vRes(){const t=tot(),p=t/(NW*NS)*100;let full=0,none=[];
  for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
  S.forEach((n,i)=>{if(sp(i+1)==0)none.push(n)});
  let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${(NW*NS)-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
+ h+=miWtg()+hoyCard()+cercaCard();
  if(none.length)h+=`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`;
  const pt=ppTot();
- if(pt){const by={};P.forEach(x=>{if(!x.repuesta)by[x.don]=(by[x.don]||0)+1});
-  h+=`<div class="card"><h2>🔧 Piezas pendientes de reposición · ${pt}</h2><div class="chips">`+Object.keys(by).sort((a,b)=>by[b]-by[a]||a-b).map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)} · ${by[w]}</button>`).join("")+`</div><div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza pendiente hasta que se marque "Repuesta" en la pestaña Piezas.</div></div>`}
+ if(pt){const by={},old={};P.forEach(x=>{if(!x.repuesta){by[x.don]=(by[x.don]||0)+1;old[x.don]=Math.max(old[x.don]||0,dias(toD(x)))}});
+  h+=`<div class="card"><h2>🔧 Piezas pendientes de reposición · ${pt}</h2><div class="chips">`+Object.keys(by).sort((a,b)=>by[b]-by[a]||a-b).map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)} · ${by[w]}${old[w]>=7?` <span class="age" style="color:${old[w]>=14?"var(--er)":"var(--nt)"}">${old[w]} d</span>`:""}</button>`).join("")+`</div><div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza pendiente hasta que se marque "Repuesta" en la pestaña Piezas.</div></div>`}
  const pend=[];for(let w=1;w<=NW;w++){const q=(NS-wp(w))+pp(w);if(q>0)pend.push([w,q])}
  pend.sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
  if(pend.length)h+=`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.min(100,Math.round(q/NS*100))}%;background:var(--nt)"></i></div><span class="p" style="width:96px">${q} pend.${pp(w)?` (🔧${pp(w)})`:""}</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes, piezas y acta. Incluye las piezas extraídas sin reponer (🔧).</div></div>`;
  h+=`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`;
  return h}
 function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g" style="grid-template-columns:38px repeat(${NS},26px)"><div class="h"></div>`;
- S.forEach(n=>h+=`<div class="h">${n}</div>`);
- for(let w=1;w<=NW;w++){h+=`<div class="l">${pad(w)}</div>`;
+ S.forEach((n,i)=>h+=`<div class="h ${mapS==i+1?"on":""}" onclick="setMapS(${i+1})" title="Tocá para ver en qué WTG falta">${n}</div>`);
+ for(let w=1;w<=NW;w++){const pw=Math.round(wp(w)/NS*100);h+=`<div class="l" style="box-shadow:inset 4px 0 0 ${col(pw)}" title="WTG ${pad(w)} · ${pw}%">${pad(w)}<small>${pw}%</small></div>`;
   for(let s=1;s<=NS;s++){const k=K(w,s),d=done(k),nt=note(k),pe=T[k]&&T[k].pending;
    h+=`<button class="c ${d?"d":nt?"n":""} ${pe?"p":""}" title="WTG ${pad(w)} · ${S[s-1]}${nt?" · "+esc(nt):""}" onclick="tg(${w},${s})">${d?"✓":nt?"!":""}</button>`}}
- return h+`</div></div><div class="sub" style="margin-top:8px">Deslizá para ver todos los sistemas. Tocá un casillero para marcar/desmarcar: se actualiza en todos los dispositivos.</div>`}
-function vWtg(){let h=`<div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button></div><div class="wg">`;
+ h+=`</div></div>`;
+ if(mapS){const f=[];for(let w=1;w<=NW;w++)if(!done(K(w,mapS)))f.push(w);
+  h=`<div class="card" style="padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><b>${esc(S[mapS-1])}: falta en ${f.length} de ${NW} WTG</b><button class="btn" onclick="setMapS(0)">✕</button></div>${f.length?`<div class="chips">${f.map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)}</button>`).join("")}</div>`:`<div style="color:var(--ok);font-weight:700">🎉 Completo en todas</div>`}</div>`+h}
+ return h+`<div class="sub" style="margin-top:8px">Tocá el nombre de un sistema para ver en qué WTG falta. La barra de color a la izquierda de cada WTG indica su avance. Deslizá para ver todos los sistemas. Tocá un casillero para marcar/desmarcar: se actualiza en todos los dispositivos.</div>`}
+function vWtg(){if(!sel&&MI)sel=MI;let h=`<div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button></div><div class="wg">`;
  for(let w=1;w<=NW;w++){const p=Math.round(wp(w)/NS*100);
   h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span>${pp(w)?`<span style="display:block;color:var(--nt);font-weight:600">🔧 ${pp(w)} pieza${pp(w)>1?"s":""}</span>`:""}</button>`}
  h+=`</div>`;
@@ -329,9 +388,12 @@ const rcvLabel=r=>/^\d+$/.test(String(r))?"WTG "+pad(+r):esc(r);
 const wopts=v=>`<option value="">Elegir…</option>`+Array.from({length:NW},(_,i)=>`<option value="${i+1}" ${String(v)===String(i+1)?"selected":""}>WTG ${pad(i+1)}</option>`).join("");
 function pieceRow(x){
  const d=x.at&&x.at.toDate?x.at.toDate():null;
- return `<div class="ae"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>${esc(x.pieza)}</b><div class="t">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div>${x.obs?`<div class="atx" style="font-size:13px">${esc(x.obs)}</div>`:""}<div class="t">${esc(x.byName||"—")} · ${fmt(d)}${x.pending?" · ⏳ guardando…":""}${x.repuesta?` · repuesta por ${esc(x.repByName||"—")}`:""}</div></div><div style="text-align:right;flex:none"><button class="chip ${x.repuesta?"d":"n"}" onclick="pzToggle('${x.id}')">${x.repuesta?"✅ Repuesta":"⏳ Pendiente en WTG "+pad(x.don)}</button>${isAdmin?` <button class="btn" onclick="pzDel('${x.id}')">🗑</button>`:""}</div></div></div>`}
+ return `<div class="ae"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>${esc(x.pieza)}</b><div class="t">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div>${x.obs?`<div class="atx" style="font-size:13px">${esc(x.obs)}</div>`:""}<div class="t">${esc(x.byName||"—")} · ${fmt(d)}${x.pending?" · ⏳ guardando…":""}${x.repuesta?` · repuesta por ${esc(x.repByName||"—")}`:""}</div></div><div style="text-align:right;flex:none"><button class="chip ${x.repuesta?"d":"n"}" onclick="pzToggle('${x.id}')">${x.repuesta?"✅ Repuesta":"⏳ Pendiente en WTG "+pad(x.don)}</button>${!x.repuesta&&d&&dias(d)>=1?`<div class="t" style="margin-top:4px;font-weight:700;color:${dias(d)>=14?"var(--er)":dias(d)>=7?"var(--nt)":"var(--mu)"}">hace ${dias(d)} día${dias(d)>1?"s":""}</div>`:""}${isAdmin?` <button class="btn" onclick="pzDel('${x.id}')">🗑</button>`:""}</div></div></div>`}
 function pzList(){
  const L=[...P].filter(x=>!pzOnly||!x.repuesta).sort((a,b)=>(a.repuesta?1:0)-(b.repuesta?1:0));
+ if(pzOnly&&L.length){const by={};L.forEach(x=>{(by[x.don]=by[x.don]||[]).push(x)});
+  return Object.keys(by).sort((a,b)=>by[b].length-by[a].length||a-b).map(w=>{const old=Math.max(...by[w].map(x=>dias(toD(x))));
+   return `<div class="ad" style="display:flex;justify-content:space-between;gap:8px"><span>WTG ${pad(w)} debe ${by[w].length} pieza${by[w].length>1?"s":""}</span><span style="font-weight:600;color:${old>=14?"var(--er)":old>=7?"var(--nt)":"var(--mu)"}">${old>=1?"la más antigua: "+old+" d":""}</span></div>`+by[w].map(pieceRow).join("")}).join("")}
  return L.length?L.map(pieceRow).join(""):`<div class="sub">${pzOnly?"No hay piezas pendientes de reposición.":"Todavía no hay piezas registradas."}</div>`}
 function vPiezas(){
  return `<div class="card acta-form"><h2>🔧 Registrar pieza extraída</h2>
@@ -466,6 +528,7 @@ function wtgActa(w){
  if(!L.length)return h+`<div class="sub">Todavía no hay registros del acta para esta WTG. Aparecen cuando el texto menciona "WTG ${pad(w)}" o la cargás en el campo de WTG involucrados.</div></div>`;
  return h+L.map(a=>{const d=a.at&&a.at.toDate?a.at.toDate():null;
   return `<div class="ae"><div class="t">${d?d.toLocaleDateString("es-AR"):"…"} ${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.pending?" · ⏳ guardando…":""}</div><div class="atx">${esc(a.text)}</div></div>`}).join("")+`</div>`}
+window.setMapS=n=>{mapS=mapS===n||!n?0:n;render(true)};
 window.setSel=w=>{sel=w;render(true)};
 window.setTab=k=>{tab=k;render()};
 window.render=function(keep){
