@@ -161,7 +161,7 @@ let tab="res",sel=null,uid=null,isAdmin=false,ready=false,fromCache=true,online=
 let NAME=localStorage.getItem("tecnico")||"";
 let A=[],draft="",draftW="";
 let WX=null,WXat=0,WXerr="";
-try{const c=JSON.parse(localStorage.getItem("wx")||"null");if(c&&c.j){WX=c.j;WXat=c.at}}catch(e){}
+try{const c=JSON.parse(localStorage.getItem("wx2")||"null");if(c&&c.j){WX=c.j;WXat=c.at}}catch(e){}
 let MI=+(localStorage.getItem("miwtg")||0),mapS=0;
 let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:""};
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
@@ -294,11 +294,11 @@ function ring(p){const r=62,c=2*Math.PI*r;return `<div class="ring"><svg width="
 
 /* ---------- Clima (Open-Meteo, gratis y sin clave) + Novedades ---------- */
 const WX_LAT=-36.8927,WX_LON=-60.3225;            // Olavarría, Buenos Aires (aprox. del parque; editar si hace falta)
-const WX_CAUT=36,WX_STOP=54;                       // km/h a 100 m: precaución / suspender trabajos en altura. REFERENCIA ORIENTATIVA: manda el procedimiento de seguridad del proyecto.
-const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=wind_speed_100m,wind_direction_100m,wind_gusts_10m,weather_code,temperature_2m,precipitation_probability&wind_speed_unit=kmh&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=3`;
+const WX_CAUT=10,WX_STOP=17;                       // m/s a 100 m: precaución / suspender trabajos en altura. REFERENCIA ORIENTATIVA: manda el procedimiento de seguridad del proyecto.
+const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=wind_speed_100m,wind_direction_100m,wind_gusts_10m,weather_code,temperature_2m,precipitation_probability&wind_speed_unit=ms&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=3`;
 async function loadWx(){
  try{const r=await fetch(WX_URL,{cache:"no-store"});if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.hourly||!j.current)throw new Error("formato");
-  WX=j;WXat=Date.now();WXerr="";try{localStorage.setItem("wx",JSON.stringify({j,at:WXat}))}catch(e){}}
+  WX=j;WXat=Date.now();WXerr="";try{localStorage.setItem("wx2",JSON.stringify({j,at:WXat}))}catch(e){}}
  catch(e){WXerr=WX?"No se pudo actualizar (se muestran los últimos datos).":"No se pudo cargar el clima (sin conexión o bloqueado en esta red)."}
  if(tab==="nov"||WXlvlNow()===2)render(true)}
 const DIRS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
@@ -312,8 +312,8 @@ function wxNow(){if(!WX)return null;const i=wxNowIdx(),h=WX.hourly,c=WX.current;
  return {v:h.wind_speed_100m[i],d:h.wind_direction_100m[i],g:Math.max(h.wind_gusts_10m[i]||0,c.wind_gusts_10m||0),v10:c.wind_speed_10m,t:c.temperature_2m,code:c.weather_code,pp:h.precipitation_probability[i]}}
 function WXlvlNow(){const n=wxNow();return n?wxLvl(n.v,n.g,n.code):0}
 function wxScene(n){
- const ms=n.v/3.6,stop=ms>=25,per=ms<3||stop?0:Math.max(2.2,60/Math.min(14,ms*1.3));
- const sd=Math.max(.9,5-n.v/12).toFixed(1),rain=n.code>=51&&n.code<=99;
+ const ms=n.v,stop=ms>=25,per=ms<3||stop?0:Math.max(2.2,60/Math.min(14,ms*1.3));
+ const sd=Math.max(.9,5-n.v/3.3).toFixed(1),rain=n.code>=51&&n.code<=99;
  const blade=a=>`<path d="M130 52 L127.6 15 Q130 11 132.4 15 Z" fill="var(--ac)" transform="rotate(${a} 130 52)"/>`;
  let sv=`<svg class="wxs" viewBox="0 0 260 150" role="img" aria-label="Aerogenerador y viento">`;
  [[28,0],[46,.6],[66,1.2],[88,.3],[108,.9],[126,1.5]].forEach(([y,dl])=>sv+=`<path class="streak" d="M-10 ${y} H250" style="--d:${sd}s;animation-delay:-${dl}s"/>`);
@@ -324,7 +324,7 @@ function wxCompass(d){const to=(d+180)%360;
  return `<svg class="cmp" viewBox="0 0 120 120" role="img" aria-label="Dirección del viento"><circle cx="60" cy="60" r="54" fill="none" stroke="var(--bd)" stroke-width="2"/>${[0,90,180,270].map((a,i)=>`<text x="60" y="${[14,0,0,0][i]||0}" font-size="10" text-anchor="middle" fill="var(--mu)" font-weight="700" transform="rotate(${a} 60 60)">${["N","E","S","O"][i]}</text>`).join("")}<g class="ar" style="transform:rotate(${to}deg)"><g class="sw"><path d="M60 22 L72 56 L60 50 L48 56 Z" fill="var(--ac)"/><rect x="57.5" y="50" width="5" height="34" rx="2.5" fill="var(--ac)" opacity=".5"/></g></g></svg>`}
 function wxHourly(){const h=WX.hourly,i0=wxNowIdx(),out=[];
  for(let k=0;k<24&&i0+k<h.time.length;k+=2){const i=i0+k,v=Math.round(h.wind_speed_100m[i]),g=h.wind_gusts_10m[i],l=wxLvl(h.wind_speed_100m[i],g,h.weather_code[i]),hh=h.time[i].slice(11,13);
-  out.push(`<div class="hc"><span>${k==0?"Ahora":hh+"h"}</span><div>${wxIcon(h.weather_code[i])}</div><div class="vb"><i style="height:${Math.min(46,Math.max(4,v*0.75))}px;background:${LV[l][1]}"></i></div><svg viewBox="0 0 20 20" style="transform:rotate(${(h.wind_direction_100m[i]+180)%360}deg)"><path d="M10 2 L15 15 L10 12 L5 15 Z" fill="var(--mu)"/></svg><b>${v}</b>km/h</div>`)}
+  out.push(`<div class="hc"><span>${k==0?"Ahora":hh+"h"}</span><div>${wxIcon(h.weather_code[i])}</div><div class="vb"><i style="height:${Math.min(46,Math.max(4,v*2.6))}px;background:${LV[l][1]}"></i></div><svg viewBox="0 0 20 20" style="transform:rotate(${(h.wind_direction_100m[i]+180)%360}deg)"><path d="M10 2 L15 15 L10 12 L5 15 Z" fill="var(--mu)"/></svg><b>${v}</b>m/s</div>`)}
  return `<div class="hr">${out.join("")}</div>`}
 function wxWindow(){ // mejor ventana de hoy/mañana: tramo más largo de horas de luz con viento en nivel "bueno"
  const h=WX.hourly,i0=wxNowIdx();let best=null,cur=null;
@@ -337,18 +337,18 @@ function wxDaily(){const h=WX.hourly,days=[...new Set(h.time.map(t=>t.slice(0,10
  return days.map((d,k)=>{const ix=h.time.map((t,i)=>t.startsWith(d)?i:-1).filter(i=>i>=0);
   const mv=Math.max(...ix.map(i=>h.wind_speed_100m[i])),mg=Math.max(...ix.map(i=>h.wind_gusts_10m[i])),tx=Math.max(...ix.map(i=>h.temperature_2m[i])),tn=Math.min(...ix.map(i=>h.temperature_2m[i]));
   const cd=Math.max(...ix.map(i=>h.weather_code[i])),l=wxLvl(mv,mg,cd),lab=nm[k]||new Date(d+"T12:00").toLocaleDateString("es-AR",{weekday:"long"});
-  return `<div class="row" style="margin:6px 0"><span class="n" style="width:84px;text-transform:capitalize">${lab}</span><span style="font-size:20px;width:30px">${wxIcon(cd)}</span><span style="flex:1;font-size:13px">${Math.round(tn)}°/${Math.round(tx)}° · viento hasta <b>${Math.round(mv)}</b> km/h</span><span class="lv" style="background:${LV[l][1]}">${["OK","Precaución","Alto"][l]}</span></div>`}).join("")}
+  return `<div class="row" style="margin:6px 0"><span class="n" style="width:84px;text-transform:capitalize">${lab}</span><span style="font-size:20px;width:30px">${wxIcon(cd)}</span><span style="flex:1;font-size:13px">${Math.round(tn)}°/${Math.round(tx)}° · viento hasta <b>${mv.toFixed(1)}</b> m/s</span><span class="lv" style="background:${LV[l][1]}">${["OK","Precaución","Alto"][l]}</span></div>`}).join("")}
 function wxCard(){
  if(!WX)return `<div class="card"><h2>🌬️ Viento y pronóstico</h2><div class="sub" style="margin:0">${esc(WXerr||"Cargando clima…")}</div></div>`;
  const n=wxNow(),l=wxLvl(n.v,n.g,n.code),ago=Math.round((Date.now()-WXat)/60000),w=wxWindow();
  return `<div class="card"><h2>🌬️ Viento y pronóstico · Olavarría</h2><div class="wx"><div>${wxScene(n)}</div><div>
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div>${wxCompass(n.d)}</div><div><div class="big-n">${Math.round(n.v)}<small> km/h</small></div><div class="sub" style="margin:2px 0">${(n.v/3.6).toFixed(1)} m/s a 100 m · del <b>${dirName(n.d)}</b> (${Math.round(n.d)}°)</div><div class="sub" style="margin:0">Ráfagas ${Math.round(n.g)} km/h · suelo ${Math.round(n.v10)} km/h</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div>${wxCompass(n.d)}</div><div><div class="big-n">${n.v.toFixed(1)}<small> m/s</small></div><div class="sub" style="margin:2px 0">a 100 m de altura · del <b>${dirName(n.d)}</b> (${Math.round(n.d)}°)</div><div class="sub" style="margin:0">Ráfagas ${n.g.toFixed(1)} m/s · suelo ${n.v10.toFixed(1)} m/s</div></div></div>
   <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="lv" style="background:${LV[l][1]}">${l==2?"⛔":l==1?"⚠️":"✅"} ${LV[l][0]}</span><span class="fl" style="font-size:22px">${wxIcon(n.code)}</span><span style="font-size:13px">${wxTxt(n.code)} · ${Math.round(n.t)}°C${n.pp!=null?` · lluvia ${n.pp}%`:""}</span></div></div></div>
   ${w?`<div class="tl" style="margin:12px 0 0">🕒 Mejor ventana para trabajos en altura: <b>${w.txt}</b> (${w.len} h con viento bajo)</div>`:`<div class="tl" style="margin:12px 0 0;color:var(--nt)">🕒 No se ve una ventana de viento bajo en las próximas 36 h.</div>`}
-  <div class="sub" style="margin:12px 0 2px;font-weight:700">Próximas 24 h (cada 2 h, viento a 100 m)</div>${wxHourly()}
+  <div class="sub" style="margin:12px 0 2px;font-weight:700">Próximas 24 h (cada 2 h, viento a 100 m, en m/s)</div>${wxHourly()}
   <div class="sub" style="margin:8px 0 2px;font-weight:700">Próximos días</div>${wxDaily()}
-  <div class="sub" style="margin:8px 0 0;font-size:11px">Datos: Open-Meteo, actualizados hace ${ago<1?"instantes":ago+" min"}${WXerr?" · "+esc(WXerr):""}. Umbrales de referencia: precaución desde ${WX_CAUT} km/h (${(WX_CAUT/3.6).toFixed(0)} m/s), suspender desde ${WX_STOP} km/h (${(WX_STOP/3.6).toFixed(0)} m/s) o tormenta. <b>No reemplazan el procedimiento de seguridad del proyecto.</b></div></div>`}
-function wxBanner(){if(!WX||Date.now()-WXat>3*3600e3)return "";const n=wxNow();return wxLvl(n.v,n.g,n.code)===2?`<div class="banner of">⛔ Viento/tormenta fuerte en el parque (${Math.round(Math.max(n.v,n.g))} km/h). Revisá la pestaña Novedades antes de trabajos en altura.</div>`:""}
+  <div class="sub" style="margin:8px 0 0;font-size:11px">Datos: Open-Meteo, actualizados hace ${ago<1?"instantes":ago+" min"}${WXerr?" · "+esc(WXerr):""}. Umbrales de referencia: precaución desde ${WX_CAUT} m/s, alarma roja (suspender trabajos en altura) desde ${WX_STOP} m/s o con tormenta. <b>No reemplazan el procedimiento de seguridad del proyecto.</b></div></div>`}
+function wxBanner(){if(!WX||Date.now()-WXat>3*3600e3)return "";const n=wxNow();return wxLvl(n.v,n.g,n.code)===2?`<div class="banner of">⛔ Viento/tormenta fuerte en el parque (${Math.max(n.v,n.g).toFixed(1)} m/s). Revisá la pestaña Novedades antes de trabajos en altura.</div>`:""}
 const rel=d=>{if(!d)return "ahora";const m=Math.round((Date.now()-d.getTime())/60000);return m<1?"ahora":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:m<2880?"ayer":`hace ${Math.round(m/1440)} días`};
 function recos(){
  const R=[];
@@ -357,7 +357,7 @@ function recos(){
   else if(l==1)R.push(["⚠️","Viento en zona de precaución: consultar al supervisor antes de subir."]);
   else if(w)R.push(["🕒",`Buena ventana para trabajos en altura ${w.txt} (${w.len} h).`]);
   const h=WX.hourly,i0=wxNowIdx();let worst=null;for(let i=i0;i<Math.min(h.time.length,i0+24);i++){const e=Math.max(h.wind_speed_100m[i],h.wind_gusts_10m[i]);if(e>=WX_STOP&&(!worst||e>worst[0]))worst=[e,h.time[i].slice(11,16)]}
-  if(worst&&l<2)R.push(["💨",`Se esperan ${Math.round(worst[0])} km/h alrededor de las ${worst[1]}: planificar lo crítico antes.`]);
+  if(worst&&l<2)R.push(["💨",`Se esperan ${worst[0].toFixed(0)} m/s alrededor de las ${worst[1]}: planificar lo crítico antes.`]);
   const rain=[];for(let i=i0;i<Math.min(h.time.length,i0+12);i++)if(h.weather_code[i]>=61)rain.push(h.time[i].slice(11,13));
   if(rain.length)R.push(["🌧️",`Lluvia prevista (${rain[0]}h–${String(+rain[rain.length-1]+1).padStart(2,"0")}h): dejar tareas a cubierto para ese momento.`])}
  const old=P.filter(x=>!x.repuesta&&dias(toD(x))>=7);
