@@ -351,6 +351,21 @@ window.pzAdd=()=>{
  const pieza=pzD.pieza.trim(),don=parseInt(pzD.don,10),rcv=String(pzD.rcv||"").trim();
  if(!pieza||!don||!rcv){toast("Completá la pieza, la WTG donante y quién recibe");return}
  if(/^\d+$/.test(rcv)&&+rcv===don){toast("La WTG donante y la que recibe no pueden ser la misma");return}
+ const nz=t=>String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+ const np=nz(pieza),rn=nz(rcv);
+ const wl=v=>/^\d+$/.test(String(v))?"WTG "+pad(+v):v;
+ const dup=P.filter(x=>{const n=nz(x.pieza);return n&&(n===np||n.includes(np)||np.includes(n))});
+ if(dup.length){
+  const sd=dup.filter(x=>x.don===don),sr=dup.filter(x=>nz(x.rcv)===rn&&!sd.includes(x));
+  const otros=dup.filter(x=>!sd.includes(x)&&!sr.includes(x));
+  const L=x=>`  • ${x.pieza}: ${wl(x.don)} → ${wl(x.rcv)} (${x.repuesta?"repuesta":"pendiente"}${x.byName?", "+x.byName:""})`;
+  let m="⚠️ Posible consumo repetido de \""+pieza+"\"\n";
+  if(sd.length)m+=`\nYa se sacó de la WTG ${pad(don)}:\n`+sd.slice(0,4).map(L).join("\n")+"\n";
+  if(sr.length)m+=`\nYa se entregó a ${wl(rcv)}:\n`+sr.slice(0,4).map(L).join("\n")+"\n";
+  if(!sd.length&&!sr.length)m+="\nYa hay piezas parecidas registradas:\n"+otros.slice(0,4).map(L).join("\n")+"\n";
+  m+="\n¿Querés registrarla igual?";
+  if(!confirm(m))return;
+ }
  const b=writeBatch(db);
  b.set(doc(piezasCol),{pieza,don,rcv,obs:pzD.obs.trim(),repuesta:false,by:uid,byName:NAME,at:serverTimestamp()});
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: la pieza NO se guardó":"❌ La pieza no se guardó: "+e.message));
