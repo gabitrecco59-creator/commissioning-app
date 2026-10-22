@@ -101,7 +101,7 @@ import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.
 import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,getDocs,onSnapshot,runTransaction,writeBatch,serverTimestamp,query,orderBy,limit,getDocFromServer} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import {firebaseConfig} from "./firebase-config.js";
 
-const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","MUESTRAS BAT","WIND SENSOR"];
+const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","BATERÍA TEST","WIND SENSOR","MUESTRAS DE ACEITE"];
 let S=[...BASE],NS=S.length;
 const NW=29,PROJ=["projects","parque"];
 const K=(w,s)=>String(w).padStart(2,"0")+"-"+s;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
