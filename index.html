@@ -51,7 +51,7 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-bottom:10px}
 .legend s{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;text-decoration:none}
 .map{overflow:auto;border:1px solid var(--bd);border-radius:12px;max-height:70vh}
-.g{display:grid;grid-template-columns:38px repeat(22,26px);gap:2px;padding:4px;width:max-content}
+.g{display:grid;grid-template-columns:38px repeat(22,var(--cs));gap:2px;padding:4px;width:max-content}
 .h{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;height:78px;color:var(--mu);text-align:left;position:sticky;top:0;background:var(--card);z-index:1}
 .l{font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;position:sticky;left:0;background:var(--card);z-index:1}
 .c{width:26px;height:26px;border-radius:6px;border:0;background:var(--pe);padding:0;font-size:12px;color:#fff;cursor:pointer;position:relative}
@@ -114,6 +114,56 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .nw{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--bd);font-size:14px}.nw:last-child{border:0}
 .nw .e{font-size:20px;flex:none;width:26px;text-align:center}.nw .t{color:var(--mu);font-size:12px}
 @media (prefers-reduced-motion:reduce){.streak,.rotor,.drop,.cmp .sw,.fl{animation:none}}
+
+/* ===== Versión visual: tarjetas plegables, minis y escritorio ===== */
+:root{--cs:26px;--g1:#2563eb;--g2:#7c3aed;--sh:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06)}
+:root[data-theme=dark]{--sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);--g1:#3b82f6;--g2:#a78bfa}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);--g1:#3b82f6;--g2:#a78bfa}}
+.card{box-shadow:var(--sh);transition:box-shadow .2s,transform .2s}
+h1{background:linear-gradient(90deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 .wt{color:var(--tx)}
+.tabs button.on{background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 4px 12px rgba(37,99,235,.35)}
+.hero{background:linear-gradient(135deg,color-mix(in srgb,var(--g1) 20%,var(--card)),color-mix(in srgb,var(--g2) 14%,var(--card)));border-color:color-mix(in srgb,var(--g1) 30%,var(--bd))}
+.ring b{background:none}.ring svg circle:nth-child(2){filter:drop-shadow(0 0 6px color-mix(in srgb,var(--ac) 55%,transparent));transition:stroke-dasharray 1s ease}
+.kpi{border:1px solid var(--bd);background:color-mix(in srgb,var(--card) 70%,transparent);backdrop-filter:blur(4px)}
+.kpi b{font-size:26px;background:linear-gradient(90deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi b[style*="--ok"]{background:none;color:var(--ok)!important}
+.bar i{background-image:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.28));animation:grow .8s ease both}
+@keyframes grow{from{width:0}}
+.tb{display:flex;gap:8px;justify-content:flex-end;margin:0 0 10px}
+.cx{padding:0;overflow:hidden}
+.cx>header{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;flex-wrap:wrap}
+.cx .ct{font-weight:700;font-size:15px;flex:1 1 150px;min-width:0}
+.cx .mini{display:flex;align-items:center;gap:8px;flex:0 1 auto;font-size:12px;color:var(--mu);max-width:100%}
+.cx .mini svg{display:block}
+.cx .mini .mn{white-space:nowrap}
+.bd{display:inline-block;border-radius:20px;padding:2px 9px;font-weight:800;font-size:12px;color:#fff;white-space:nowrap}
+.cx .chev{font-style:normal;color:var(--mu);transition:transform .3s;transform:rotate(180deg);flex:none;font-weight:700;margin-left:auto}
+.cx.open .chev{transform:rotate(0)}
+.cx>header:hover{background:color-mix(in srgb,var(--ac) 7%,transparent)}
+.cx .cb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+.cx.open .cb{grid-template-rows:1fr}
+.cx .ci{overflow:hidden;min-height:0}.cx .ip{padding:2px 14px 14px;border-top:1px solid var(--bd)}
+.cx:not(.open) .ip{visibility:hidden}.cx .ip{transition:visibility .35s}
+.gr>.card,.two>.card,.two>section{margin-bottom:14px}
+@media (min-width:900px){
+ body{max-width:min(1700px,96vw);padding:20px 32px}
+ :root{--cs:34px}
+ h1{font-size:26px}
+ .tabs{max-width:900px;margin-left:auto;margin-right:auto}.tabs button{font-size:14px;padding:11px 8px}
+ .gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:0 16px;align-items:start}
+ .gr>.wide{grid-column:1/-1}
+ .two{display:grid;grid-template-columns:minmax(360px,440px) 1fr;gap:0 16px;align-items:start}
+ .card:hover{transform:translateY(-1px)}
+ .hero{padding:22px 28px;gap:30px}.ring{width:190px;height:190px}.ring svg{width:190px;height:190px}.ring b{font-size:40px}
+ .kpis{grid-template-columns:repeat(3,minmax(120px,1fr));gap:14px}.kpi{padding:16px}.kpi b{font-size:34px}
+ .map{max-height:76vh}.h{height:92px;font-size:11px}.wg{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+ .hr{overflow-x:visible}.hc{flex:1;width:auto}
+}
+@media (min-width:1500px){.gr{grid-template-columns:repeat(auto-fit,minmax(520px,1fr))}}
+.c{width:var(--cs);height:var(--cs)}
+.pan{max-height:520px}
+@media print{.tb{display:none}}
 @media print{.top,#banner,.tabs,#adm,.acta-form,.btn,.toast{display:none!important}body{padding:0;max-width:none}.card{border:0}}
 </style></head><body>
 <div class="top">
@@ -378,16 +428,51 @@ function novGroups(){ // últimos trabajos: tareas marcadas, agrupadas por técn
  const G=[];H.filter(h=>h.done&&!h.restore&&!h.nueva).forEach(h=>{const g=G[G.length-1];
   if(g&&g.by===h.byName&&g.w===h.w&&G.length)g.n.push(S[h.s-1]||h.sys);else G.push({by:h.byName,w:h.w,n:[S[h.s-1]||h.sys],at:toD(h)||new Date()})});return G.slice(0,6)}
 function vNov(){
- let h=wxCard();
+ let h=fold("clima",wxMini(),wxCard(),true,true);
  const R=recos();
- h+=`<div class="card"><h2>💡 Recomendaciones</h2>`+(R.length?R.map(([e,t])=>`<div class="nw"><span class="e">${e}</span><div>${esc(t)}</div></div>`).join(""):`<div class="sub" style="margin:0">Todo en orden por ahora.</div>`)+`</div>`;
+ h+=fold("rec",miniRec(R),`<div class="card"><h2>💡 Recomendaciones</h2>`+(R.length?R.map(([e,t])=>`<div class="nw"><span class="e">${e}</span><div>${esc(t)}</div></div>`).join(""):`<div class="sub" style="margin:0">Todo en orden por ahora.</div>`)+`</div>`,R.length>0&&R.some(r=>/⛔|⚠️/.test(r[0])));
  const fin=[];for(let w=1;w<=NW;w++)if(wp(w)==NS&&pp(w)==0)fin.push(w);
- h+=`<div class="card"><h2>🏆 WTG sin pendientes · ${fin.length}/${NW}</h2>`+(fin.length?`<div class="chips">${fin.map(w=>`<button class="chip d" onclick="goWtg(${w})">✓ WTG ${pad(w)}</button>`).join("")}</div>`:`<div class="sub" style="margin:0">Todavía ninguna terminada. ${(()=>{let b=null;for(let w=1;w<=NW;w++){const q=faltan(w).length+pp(w);if(q>0&&(!b||q<b[1]))b=[w,q]}return b?`La más cerca: WTG ${pad(b[0])} (faltan ${b[1]}).`:""})()}</div>`)+`</div>`;
+ h+=fold("fin",miniFin(),`<div class="card"><h2>🏆 WTG sin pendientes · ${fin.length}/${NW}</h2>`+(fin.length?`<div class="chips">${fin.map(w=>`<button class="chip d" onclick="goWtg(${w})">✓ WTG ${pad(w)}</button>`).join("")}</div>`:`<div class="sub" style="margin:0">Todavía ninguna terminada. ${(()=>{let b=null;for(let w=1;w<=NW;w++){const q=faltan(w).length+pp(w);if(q>0&&(!b||q<b[1]))b=[w,q]}return b?`La más cerca: WTG ${pad(b[0])} (faltan ${b[1]}).`:""})()}</div>`)+`</div>`,false);
  const G=novGroups(),ac=A.slice(0,4);
- h+=`<div class="card"><h2>🛠️ Últimos trabajos</h2>`+((G.length||ac.length)?
+ h+=fold("ult",miniUlt(),`<div class="card"><h2>🛠️ Últimos trabajos</h2>`+((G.length||ac.length)?
   ac.map(a=>`<div class="nw"><span class="e">📝</span><div><div class="atx" style="font-size:14px">${esc(String(a.text).length>200?String(a.text).slice(0,200)+"…":a.text)}</div><div class="t">${esc(a.byName||"—")}${a.wtg?" · WTG "+esc(a.wtg):""} · ${rel(toD(a))}</div></div></div>`).join("")+
-  G.map(g=>`<div class="nw"><span class="e">✅</span><div><b>WTG ${pad(g.w)}</b>: ${g.n.map(esc).join(", ")}<div class="t">${esc(g.by||"—")} · ${rel(g.at)}</div></div></div>`).join(""):`<div class="sub" style="margin:0">Todavía no hay trabajos registrados.</div>`)+`</div>`;
- return h}
+  G.map(g=>`<div class="nw"><span class="e">✅</span><div><b>WTG ${pad(g.w)}</b>: ${g.n.map(esc).join(", ")}<div class="t">${esc(g.by||"—")} · ${rel(g.at)}</div></div></div>`).join(""):`<div class="sub" style="margin:0">Todavía no hay trabajos registrados.</div>`)+`</div>`,false);
+ return `<div class="tb"><button class="btn" onclick="cxAll(true)">⤢ Expandir todo</button><button class="btn" onclick="cxAll(false)">⤡ Minimizar todo</button></div><div class="gr">`+h+`</div>`}
+
+
+/* ---------- Tarjetas plegables con miniatura (versión visual) ---------- */
+let CX={};try{CX=JSON.parse(localStorage.getItem("cx")||"{}")}catch(e){}
+const saveCX=()=>{try{localStorage.setItem("cx",JSON.stringify(CX))}catch(e){}};
+function fold(id,mini,html,open,wide){
+ if(!html)return "";
+ const m=html.match(/^<div class="card[^"]*"[^>]*>\s*<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*)<\/div>$/);if(!m)return html;
+ const o=CX[id]!==undefined?CX[id]:open;
+ return `<section class="card cx ${o?"open":""} ${wide?"wide":""}" data-id="${id}"><header onclick="toggleCx(this)"><span class="ct">${m[1]}</span><span class="mini">${mini||""}</span><i class="chev">⌃</i></header><div class="cb"><div class="ci"><div class="ip">${m[2]}</div></div></div></section>`}
+window.toggleCx=hd=>{const s=hd.parentElement;s.classList.toggle("open");CX[s.dataset.id]=s.classList.contains("open");saveCX()};
+window.cxAll=v=>{document.querySelectorAll(".cx").forEach(s=>{s.classList.toggle("open",v);CX[s.dataset.id]=v});saveCX()};
+function two(html,id,hint,open){const [a,b]=html.split("<!--SPLIT-->");
+ return `<div class="two">${fold(id,`<span class="mn">${hint}</span>`,a,CX[id]!==undefined?CX[id]:false)}<div>${b||""}</div></div>`}
+const spark=(v,mx,cf,h=28)=>{const n=v.length||1,bw=6,g=2,W=n*(bw+g);return `<svg viewBox="0 0 ${W} ${h}" preserveAspectRatio="none" style="width:min(100%,${Math.min(220,Math.max(90,n*8))}px);height:${h}px" aria-hidden="true">${v.map((x,i)=>{const bh=Math.max(2,Math.round(h*Math.min(1,x/(mx||1))));return `<rect x="${i*(bw+g)}" y="${h-bh}" width="${bw}" height="${bh}" rx="2" fill="${cf(x)}"/>`}).join("")}</svg>`};
+const mring=(p,lab,sz=38)=>{const r=14,c=2*Math.PI*r;return `<svg width="${sz}" height="${sz}" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="${r}" fill="none" stroke="var(--pe)" stroke-width="5"/><circle cx="19" cy="19" r="${r}" fill="none" stroke="${p>=100?"var(--ok)":"var(--ac)"}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c*Math.min(100,p)/100} ${c}" transform="rotate(-90 19 19)"/><text x="19" y="22.5" text-anchor="middle" font-size="9.5" font-weight="800" fill="var(--tx)">${lab??Math.round(p)}</text></svg>`};
+const miniMi=()=>{if(!MI)return `<span class="mn">Elegí tu WTG</span>`;const f=faltan(MI).length;return mring(wp(MI)/NS*100)+`<span class="mn">WTG ${pad(MI)} · ${f?f+" falta"+(f>1?"n":""):"completa ✓"}</span>`};
+const miniHoy=()=>{const a=hoyStats();return `<span class="bd" style="background:${a.c?"var(--ok)":"var(--mu)"}">${a.c}</span><span class="mn">tareas hoy · ${a.wt.length} WTG</span>`};
+const miniCerca=()=>{const L=[];for(let w=1;w<=NW;w++){const q=faltan(w).length+pp(w);if(q>0&&wp(w)>0)L.push([w,q])}L.sort((a,b)=>a[1]-b[1]);const t=L.slice(0,6);return t.length?spark(t.map(x=>100-x[1]/NS*100),100,col)+`<span class="mn">WTG ${pad(t[0][0])}: faltan ${t[0][1]}</span>`:`<span class="mn">—</span>`};
+const miniNone=n=>`<span class="bd" style="background:var(--nt)">${n.length}</span><span class="mn">sin iniciar</span>`;
+const miniPz=()=>{const pt=ppTot(),tt=P.length||1,old=Math.max(0,...P.filter(x=>!x.repuesta).map(x=>dias(toD(x))));return mring((tt-pt)/tt*100)+`<span class="bd" style="background:${old>=14?"var(--er)":"var(--nt)"}">${pt} pend.</span>${old>=7?`<span class="mn">la más antigua: ${old} d</span>`:""}`};
+const miniPend=()=>{const v=[];for(let w=1;w<=NW;w++)v.push((NS-wp(w))+pp(w));return spark(v,NS,x=>x>NS*.6?"var(--er)":x>NS*.3?"var(--nt)":x>0?"#84cc16":"var(--ok)")+`<span class="mn">${NW} WTG</span>`};
+const miniSys=()=>spark(S.map((n,i)=>sp(i+1)/NW*100),100,col)+`<span class="mn">${NS} sistemas</span>`;
+const miniPan=()=>{const v=[];for(let w=1;w<=NW;w++)v.push(wp(w)/NS*100);return spark(v,100,col)+`<span class="mn">${(tot()/(NW*NS)*100).toFixed(0)}% total</span>`};
+function panCard(){
+ const cw=14,lw=96,top=26,W=lw+NW*cw,H=top+NS*cw+14;let g="";
+ for(let w=1;w<=NW;w++){const p=wp(w)/NS*100,bh=Math.max(2,p/100*18);g+=`<rect x="${lw+(w-1)*cw+1}" y="${top-4-bh}" width="${cw-2}" height="${bh}" rx="2" fill="${col(p)}"/>`;g+=`<text x="${lw+(w-1)*cw+cw/2}" y="${H-2}" text-anchor="middle" font-size="6.5" fill="var(--mu)">${w}</text>`}
+ S.forEach((n,i)=>{g+=`<text x="${lw-6}" y="${top+i*cw+cw*.72}" text-anchor="end" font-size="7.5" fill="var(--mu)" font-weight="600">${esc(n)}</text>`;
+  for(let w=1;w<=NW;w++){const k=K(w,i+1),d=done(k),nt=note(k);g+=`<rect x="${lw+(w-1)*cw+1}" y="${top+i*cw+1}" width="${cw-2}" height="${cw-2}" rx="3" fill="${d?"var(--ok)":"var(--pe)"}" ${!d&&nt?'stroke="var(--nt)" stroke-width="1.5"':""}><title>WTG ${pad(w)} · ${esc(n)}${d?" ✓":""}</title></rect>`}});
+ return `<div class="card"><h2>🧭 Panorama de avance (WTG × sistema)</h2><svg class="pan" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;cursor:pointer" onclick="setTab('map')" role="img" aria-label="Mapa de calor de avance">${g}</svg><div class="legend" style="margin:8px 0 0"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span>Barras de arriba: avance de cada WTG · tocá para abrir el Mapa y editar</span></div></div>`}
+const wxMini=()=>{if(!WX)return `<span class="mn">${WXerr?"sin datos":"cargando…"}</span>`;const n=wxNow(),l=wxLvl(n.v,n.g,n.code),h=WX.hourly,i0=wxNowIdx(),v=[];for(let k=0;k<24&&i0+k<h.time.length;k++)v.push(h.wind_speed_100m[i0+k]);
+ return `<span class="bd" style="background:${LV[l][1]}">${n.v.toFixed(1)} m/s</span><svg width="18" height="18" viewBox="0 0 20 20" style="transform:rotate(${(n.d+180)%360}deg);transition:transform 1s" aria-hidden="true"><path d="M10 2 L15 15 L10 12 L5 15 Z" fill="var(--ac)"/></svg><span class="mn">${dirName(n.d)} · ${wxIcon(n.code)} ${Math.round(n.t)}°</span>`+spark(v,20,x=>x>=WX_STOP?"var(--er)":x>=WX_CAUT?"#f59e0b":"var(--ok)",24)};
+const miniRec=R=>{const bad=R.filter(r=>/⛔|⚠️/.test(r[0])).length;return `<span class="bd" style="background:${bad?"var(--er)":R.length?"var(--ac)":"var(--ok)"}">${R.length}</span><span class="mn">${bad?bad+" alerta"+(bad>1?"s":""):R.length?"consejos":"todo en orden"}</span>`};
+const miniFin=()=>{let n=0;for(let w=1;w<=NW;w++)if(wp(w)==NS&&pp(w)==0)n++;return mring(n/NW*100,n)+`<span class="mn">de ${NW} WTG sin pendientes</span>`};
+const miniUlt=()=>{const a=A[0],g=novGroups()[0];const t=a?String(a.text).replace(/\s+/g," ").slice(0,48):g?`WTG ${pad(g.w)}: ${g.n[0]}`:"sin registros";return `<span class="mn" style="white-space:normal;max-width:220px">${esc(t)}${a&&String(a.text).length>48?"…":""}</span>`};
 
 /* ---------- Ayudas nuevas: hoy, mi WTG, parte del día ---------- */
 const toD=x=>x&&x.at&&x.at.toDate?x.at.toDate():null;
@@ -439,18 +524,18 @@ window.copiarParte=async()=>{
 function vRes(){const t=tot(),p=t/(NW*NS)*100;let full=0,none=[];
  for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
  S.forEach((n,i)=>{if(sp(i+1)==0)none.push(n)});
- let h=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${(NW*NS)-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;
- h+=miWtg()+hoyCard()+cercaCard();
- if(none.length)h+=`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`;
+ let hero=`<div class="card hero">${ring(p)}<div class="kpis"><div class="kpi"><b style="color:var(--ok)">${t}</b><span>completos</span></div><div class="kpi"><b>${(NW*NS)-t}</b><span>pendientes</span></div><div class="kpi"><b>${full}/${NW}</b><span>WTG al 100%</span></div></div></div>`;let h="";
+ h+=fold("mi",miniMi(),miWtg(),true)+fold("hoy",miniHoy(),hoyCard(),false)+fold("cerca",miniCerca(),cercaCard(),false);
+ if(none.length)h+=fold("none",miniNone(none),`<div class="card"><h2>🚧 Sistemas sin iniciar</h2><div class="chips">${none.map(n=>`<span class="chip n">${n}</span>`).join("")}</div></div>`,false);
  const pt=ppTot();
  if(pt){const by={},old={};P.forEach(x=>{if(!x.repuesta){by[x.don]=(by[x.don]||0)+1;old[x.don]=Math.max(old[x.don]||0,dias(toD(x)))}});
-  h+=`<div class="card"><h2>🔧 Piezas pendientes de reposición · ${pt}</h2><div class="chips">`+Object.keys(by).sort((a,b)=>by[b]-by[a]||a-b).map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)} · ${by[w]}${old[w]>=7?` <span class="age" style="color:${old[w]>=14?"var(--er)":"var(--nt)"}">${old[w]} d</span>`:""}</button>`).join("")+`</div><div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza pendiente hasta que se marque "Repuesta" en la pestaña Piezas.</div></div>`}
+  h+=fold("pz",miniPz(),`<div class="card"><h2>🔧 Piezas pendientes de reposición · ${pt}</h2><div class="chips">`+Object.keys(by).sort((a,b)=>by[b]-by[a]||a-b).map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)} · ${by[w]}${old[w]>=7?` <span class="age" style="color:${old[w]>=14?"var(--er)":"var(--nt)"}">${old[w]} d</span>`:""}</button>`).join("")+`</div><div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza pendiente hasta que se marque "Repuesta" en la pestaña Piezas.</div></div>`,false)}
  const pend=[];for(let w=1;w<=NW;w++){const q=(NS-wp(w))+pp(w);if(q>0)pend.push([w,q])}
  pend.sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
- if(pend.length)h+=`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.min(100,Math.round(q/NS*100))}%;background:var(--nt)"></i></div><span class="p" style="width:96px">${q} pend.${pp(w)?` (🔧${pp(w)})`:""}</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes, piezas y acta. Incluye las piezas extraídas sin reponer (🔧).</div></div>`;
- h+=`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`;
- return h}
-function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g" style="grid-template-columns:38px repeat(${NS},26px)"><div class="h"></div>`;
+ if(pend.length)h+=fold("pend",miniPend(),`<div class="card"><h2>📌 WTG con más pendientes</h2>`+pend.slice(0,8).map(([w,q])=>`<div class="row" style="cursor:pointer" onclick="goWtg(${w})"><span class="n">WTG ${pad(w)}</span><div class="bar"><i style="width:${Math.min(100,Math.round(q/NS*100))}%;background:var(--nt)"></i></div><span class="p" style="width:96px">${q} pend.${pp(w)?` (🔧${pp(w)})`:""}</span></div>`).join("")+`<div class="sub" style="margin:8px 0 0">Tocá una WTG para ver sus sistemas pendientes, piezas y acta. Incluye las piezas extraídas sin reponer (🔧).</div></div>`,false);
+ h+=fold("sys",miniSys(),`<div class="card"><h2>Avance por sistema</h2>`+S.map((n,i)=>{const q=sp(i+1)/NW*100;return `<div class="row"><span class="n">${n}</span>${bar(q)}<span class="p">${Math.round(q)}%</span></div>`}).join("")+`</div>`,false);
+ return hero+`<div class="tb"><button class="btn" onclick="cxAll(true)">⤢ Expandir todo</button><button class="btn" onclick="cxAll(false)">⤡ Minimizar todo</button></div><div class="gr">`+fold("pan",miniPan(),panCard(),true,true)+h+`</div>`}
+function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g" style="grid-template-columns:38px repeat(${NS},var(--cs))"><div class="h"></div>`;
  S.forEach((n,i)=>h+=`<div class="h ${mapS==i+1?"on":""}" onclick="setMapS(${i+1})" title="Tocá para ver en qué WTG falta">${n}</div>`);
  for(let w=1;w<=NW;w++){const pw=Math.round(wp(w)/NS*100);h+=`<div class="l" style="box-shadow:inset 4px 0 0 ${col(pw)}" title="WTG ${pad(w)} · ${pw}%">${pad(w)}<small>${pw}%</small></div>`;
   for(let s=1;s<=NS;s++){const k=K(w,s),d=done(k),nt=note(k),pe=T[k]&&T[k].pending;
@@ -515,7 +600,7 @@ function vActa(){
  <label class="btn" style="display:inline-block;margin-bottom:10px;cursor:pointer">📷 Agregar fotos (hasta 4)<input type="file" accept="image/*" multiple style="display:none" onchange="addFotos(this)"></label>
  <div><button class="btn pri" style="${dn?"background:var(--er);border-color:var(--er)":""}" onclick="addActa()">${dn?"Registrar daño":"Registrar en el acta"}</button></div>
  <div class="sub" style="margin:8px 0 0">Cada registro queda guardado con fecha, hora y tu nombre. No se puede editar ni borrar: si hay un error, agregá una corrección. ${dn?"Con el daño registrado se genera un reporte descargable con las fotos.":""}</div></div>
- <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div>
+ <!--SPLIT--><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div>
  <div class="chips" style="margin:6px 0 8px"><button class="chip ${aFil==="all"?"d":""}" onclick="setAFil('all')">Todo (${A.length})</button><button class="chip ${aFil==="acta"?"d":""}" onclick="setAFil('acta')">📝 Actas (${A.length-nDano()})</button><button class="chip ${aFil==="dano"?"d":""}" onclick="setAFil('dano')">⚠️ Daños (${nDano()})</button>${nDano()?`<button class="btn" onclick="repAll()">⬇ Reporte de todos los daños</button>`:""}</div>
  <div id="alist">${actaList()}</div></div>`}
 window.setDraft=v=>{draft=v};window.setDraftW=v=>{draftW=v};window.setDraftC=v=>{draftC=v};window.setDraftS=v=>{draftS=v};
@@ -654,7 +739,7 @@ function vPiezas(){
  <input class="pi" maxlength="200" placeholder="Observaciones (opcional)" value="${esc(pzD.obs)}" oninput="pzSet('obs',this.value)">
  <button class="btn pri" onclick="pzAdd()">Registrar pieza</button>
  <div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza como <b>pendiente</b> (se suma a sus pendientes y al Resumen) hasta que se marque como repuesta.</div></div>
- <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Piezas extraídas</h2><div style="display:flex;gap:6px"><button class="chip ${pzOnly?"d":""}" onclick="pzF(true)">Pendientes (${ppTot()})</button><button class="chip ${pzOnly?"":"d"}" onclick="pzF(false)">Todas (${P.length})</button></div></div><div id="plist">${pzList()}</div></div>`}
+ <!--SPLIT--><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Piezas extraídas</h2><div style="display:flex;gap:6px"><button class="chip ${pzOnly?"d":""}" onclick="pzF(true)">Pendientes (${ppTot()})</button><button class="chip ${pzOnly?"":"d"}" onclick="pzF(false)">Todas (${P.length})</button></div></div><div id="plist">${pzList()}</div></div>`}
 window.pzSet=(k,v)=>{pzD[k]=v};
 window.pzF=v=>{pzOnly=v;render()};
 window.pzAdd=()=>{
@@ -791,7 +876,7 @@ window.render=function(keep){
  document.body.classList.toggle("ro",!canEdit());
  $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
- if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?vActa():tab=="pie"?vPiezas():vHist();
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true):vHist();
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  const lb=+(localStorage.getItem("respaldo")||0),dias=lb?Math.floor((Date.now()-lb)/864e5):null;
  $("adm").innerHTML=`<button class="btn" onclick="openBackup()">💾 Descargar respaldo</button> ${isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:""}<div class="sub" style="margin:8px 0 0;${dias===null||dias>=7?"color:var(--nt);font-weight:600":""}">${dias===null?"Todavía no hiciste ningún respaldo en este dispositivo":dias===0?"Último respaldo en este dispositivo: hoy":`Último respaldo en este dispositivo: hace ${dias} día${dias>1?"s":""}`}</div>`;
