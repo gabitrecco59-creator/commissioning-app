@@ -550,10 +550,10 @@ const miniUlt=()=>{const a=A[0],g=novGroups()[0];const t=a?String(a.text).replac
 const toD=x=>x&&x.at&&x.at.toDate?x.at.toDate():null;
 const dias=d=>d?Math.max(0,Math.floor((Date.now()-d.getTime())/864e5)):0;
 function hoyStats(){
- const now=new Date(),by={},wt=new Set();let c=0,u=0;
+ const now=new Date(),by={},wt=new Set(),det={};let c=0,u=0;
  H.forEach(h=>{if(h.restore||h.nueva)return;const d=toD(h)||(h.pending?now:null);if(!d||d.toDateString()!==now.toDateString())return;
-  if(h.done){c++;by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;wt.add(h.w)}else u++});
- return {c,u,by,wt:[...wt].sort((a,b)=>a-b)}}
+  if(h.done){c++;by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;wt.add(h.w);(det[h.w]=det[h.w]||new Set()).add(S[h.s-1]||"Sistema "+h.s)}else u++});
+ return {c,u,by,det,wt:[...wt].sort((a,b)=>a-b)}}
 const faltan=w=>S.map((n,i)=>done(K(w,i+1))?null:n).filter(Boolean);
 window.setMi=v=>{MI=+v||0;try{localStorage.setItem("miwtg",String(MI))}catch(e){}render(true)};
 function miWtg(){
@@ -569,26 +569,28 @@ function hoyCard(){
  const a=hoyStats(),ac=A.filter(x=>{const d=toD(x)||(x.pending?new Date():null);return d&&d.toDateString()===new Date().toDateString()}).length;
  const who=Object.entries(a.by).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`${esc(n)} <b>${c}</b>`).join(" · ");
  return `<div class="card"><h2>📅 Hoy</h2><div class="hero2"><div class="kpi"><b style="color:var(--ok)">${a.c}</b><span>tareas completadas</span></div><div class="kpi"><b>${a.wt.length}</b><span>WTG con avance</span></div><div class="kpi"><b>${ac}</b><span>registros de acta</span></div></div>`+
-  (a.c?`<div class="tl">${who}</div><div class="tl" style="margin:0">WTG: ${a.wt.map(pad).join(", ")}${a.u?` · ↩ ${a.u} desmarcada${a.u>1?"s":""}`:""}</div>`:`<div class="sub" style="margin:0">Todavía no se marcó nada hoy.</div>`)+`<div style="margin-top:10px"><button class="btn pri" onclick="copiarParte()">📋 Copiar parte del día</button> <span class="sub" style="margin-left:6px">para pegar en WhatsApp</span></div></div>`}
+  (a.c?`<div class="tl">${who}</div>${a.wt.map(w=>`<div class="tl" style="margin:2px 0"><b>WTG ${pad(w)}</b>: ${[...a.det[w]].map(esc).join(", ")}</div>`).join("")}${a.u?`<div class="tl" style="margin:0">↩ ${a.u} desmarcada${a.u>1?"s":""}</div>`:""}`:`<div class="sub" style="margin:0">Todavía no se marcó nada hoy.</div>`)+`<div style="margin-top:10px"><button class="btn pri" onclick="copiarParte()">📋 Copiar parte del día</button> <span class="sub" style="margin-left:6px">para pegar en WhatsApp</span></div></div>`}
 function cercaCard(){
  const L=[];for(let w=1;w<=NW;w++){const f=faltan(w),q=f.length+pp(w);if(q>0&&wp(w)>0)L.push([w,f,q])}
  L.sort((a,b)=>a[2]-b[2]||a[0]-b[0]);if(!L.length)return "";
  return `<div class="card"><h2>🏁 Más cerca de cerrar</h2>`+L.slice(0,5).map(([w,f,q])=>{const p=Math.round(wp(w)/NS*100);return `<div style="cursor:pointer;margin:8px 0" onclick="goWtg(${w})"><div class="row" style="margin:0"><span class="n" style="width:70px">WTG ${pad(w)}</span>${bar(p)}<span class="p" style="width:70px">${q} falta${q>1?"n":""}</span></div><div class="sub" style="margin:2px 0 0 78px;font-size:12px">${f.slice(0,3).map(esc).join(", ")}${f.length>3?` +${f.length-3}`:""}${pp(w)?` · 🔧${pp(w)} pieza${pp(w)>1?"s":""}`:""}</div></div>`}).join("")+`</div>`}
 window.copiarParte=async()=>{
  const t=tot(),tt=NW*NS,a=hoyStats(),now=new Date();let full=0;for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
- const L=[`📊 *PARTE DE COMMISSIONING*`,`PE Olavarria PCR · ${now.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"})}`,"",
-  `Avance total: *${(t/tt*100).toFixed(1)}%* (${t}/${tt})`,`WTG al 100%: ${full}/${NW}`,"",
-  `✅ Hoy: ${a.c} tarea${a.c==1?"":"s"} completada${a.c==1?"":"s"}${a.c?` en WTG ${a.wt.map(pad).join(", ")}`:""}`];
- if(a.c)L.push("   "+Object.entries(a.by).map(([n,c])=>`${n} (${c})`).join(", "));
+ const L=[`📊 *PARTE DE COMMISSIONING*`,`PE Olavarria PCR · ${now.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"})}`,""];
+ L.push(`✅ *TAREAS REALIZADAS HOY* (${a.c})`);
+ if(a.c){a.wt.forEach(w=>L.push(`• WTG ${pad(w)}: ${[...a.det[w]].join(", ")}`));L.push("Por técnico: "+Object.entries(a.by).map(([n,c])=>`${n} (${c})`).join(", "))}
+ else L.push("Todavía no se marcó nada hoy.");
+ if(a.u)L.push(`↩ ${a.u} tarea${a.u>1?"s":""} desmarcada${a.u>1?"s":""} hoy`);
+ const ah=A.filter(x=>{const d=toD(x);return d&&d.toDateString()===now.toDateString()}).reverse();
+ if(ah.length){L.push("",`📝 *ACTA DE HOY* (${ah.length})`);ah.forEach(x=>L.push(`• ${hhmm(toD(x))} ${x.byName||""}${x.wtg?" (WTG "+x.wtg+")":""}${isDano(x)?" ⚠️ DAÑO":""}: ${String(x.text).replace(/\s+/g," ")}`))}
+ L.push("",`📈 *AVANCE*`,`Avance total: *${(t/tt*100).toFixed(1)}%* (${t}/${tt})`,`WTG al 100%: ${full}/${NW}`);
  const cl=[];for(let w=1;w<=NW;w++){const f=faltan(w),q=f.length+pp(w);if(q>0&&wp(w)>0)cl.push([w,f,q])}
- cl.sort((x,y)=>x[2]-y[2]);
- if(cl.length){L.push("","🏁 Más cerca de cerrar:");cl.slice(0,3).forEach(([w,f,q])=>L.push(`• WTG ${pad(w)}: faltan ${f.slice(0,4).join(", ")}${f.length>4?"…":""}${pp(w)?` + ${pp(w)} pieza(s)`:""}`))}
+ cl.sort((x,y)=>x[2]-y[2]||x[0]-y[0]);
+ if(cl.length){L.push("","🏁 Más cerca de cerrar:");cl.slice(0,5).forEach(([w,f,q])=>L.push(`• WTG ${pad(w)}: faltan ${f.join(", ")}${pp(w)?` + ${pp(w)} pieza(s)`:""}`))}
  const pend=P.filter(x=>!x.repuesta);
  if(pend.length){L.push("",`🔧 Piezas sin reponer (${pend.length}):`);const by={};pend.forEach(x=>{(by[x.don]=by[x.don]||[]).push(x)});
-  Object.keys(by).sort((x,y)=>by[y].length-by[x].length).forEach(w=>{const old=Math.max(...by[w].map(x=>dias(toD(x))));L.push(`• WTG ${pad(w)}: ${by[w].map(x=>x.pieza).slice(0,4).join("; ")}${by[w].length>4?"…":""}${old>=3?` (${old} d)`:""}`)})}
- const sin=S.filter((n,i)=>sp(i+1)==0);if(sin.length)L.push("",`🚧 Sin iniciar: ${sin.join(", ")}`);
- const ah=A.filter(x=>{const d=toD(x);return d&&d.toDateString()===now.toDateString()}).reverse();
- if(ah.length){L.push("","📝 Acta de hoy:");ah.forEach(x=>L.push(`• ${hhmm(toD(x))} ${x.byName||""}: ${String(x.text).replace(/\s+/g," ").slice(0,220)}`))}
+  Object.keys(by).sort((x,y)=>by[y].length-by[x].length).forEach(w=>{const old=Math.max(...by[w].map(x=>dias(toD(x))));L.push(`• WTG ${pad(w)}: ${by[w].map(x=>x.pieza).join("; ")}${old>=3?` (${old} d)`:""}`)})}
+ const sin=S.filter((n,i)=>sp(i+1)==0);if(sin.length)L.push("",`🚧 *SIN INICIAR*: ${sin.join(", ")}`);
  const txt=L.join("\n");
  try{await navigator.clipboard.writeText(txt);toast("✅ Parte copiado. Pegalo en WhatsApp.",true)}
  catch(e){try{const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();const ok=document.execCommand("copy");ta.remove();if(ok){toast("✅ Parte copiado. Pegalo en WhatsApp.",true);return}}catch(e2){}
