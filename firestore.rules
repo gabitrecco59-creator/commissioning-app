@@ -42,7 +42,30 @@ service cloud.firestore {
         && (!('nfotos' in request.resource.data) || (request.resource.data.nfotos is int && request.resource.data.nfotos <= 4))
         && (!('comp' in request.resource.data) || (request.resource.data.comp is string && request.resource.data.comp.size() <= 80))
         && (!('sev' in request.resource.data) || request.resource.data.sev in ['Menor','Mayor','Crítico']);
-      allow update, delete: if false;
+      // Editar y cerrar casos: se permite cambiar solo estos campos. Cada edición/cierre deja una copia en la subcolección "ediciones".
+      // Para cerrar un caso hace falta al menos 1 foto de evidencia y una descripción de lo realizado.
+      allow update: if signed()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','wtg','comp','sev','estado','cierreTxt','cierreBy','cierreByName','cierreAt','cierreFotos','editedBy','editedByName','editedAt','editN'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && (!('estado' in request.resource.data) || request.resource.data.estado in ['abierto','cerrado'])
+        && (request.resource.data.get('estado','abierto') != 'cerrado'
+            || (request.resource.data.get('cierreFotos',0) is int
+                && request.resource.data.get('cierreFotos',0) >= 1
+                && request.resource.data.get('cierreTxt','').size() > 0))
+        && (!('cierreFotos' in request.resource.data) || (request.resource.data.cierreFotos is int && request.resource.data.cierreFotos <= 4))
+        && (!('comp' in request.resource.data) || (request.resource.data.comp is string && request.resource.data.comp.size() <= 80))
+        && (!('sev' in request.resource.data) || request.resource.data.sev in ['Menor','Mayor','Crítico'])
+        && (!('wtg' in request.resource.data) || request.resource.data.wtg.size() <= 40);
+      allow delete: if false;
+
+      // Historial de ediciones, cierres y reaperturas: solo se agrega.
+      match /ediciones/{eid} {
+        allow read: if signed();
+        allow create: if signed() && request.resource.data.by == request.auth.uid;
+        allow update, delete: if false;
+      }
     }
 
     // Fotos del acta / daños (comprimidas en el navegador, una por documento). Solo se agregan.

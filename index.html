@@ -489,7 +489,7 @@ function recos(){
  const st=S.map((nn,i)=>[nn,sp(i+1)]).filter(x=>x[1]>0).sort((a,b)=>a[1]-b[1])[0];
  if(st&&st[1]<NW*0.4)R.push(["📉",`Cuello de botella: ${st[0]} avanzó solo en ${st[1]} de ${NW} WTG.`]);
  const sin=S.filter((nn,i)=>sp(i+1)==0);if(sin.length)R.push(["🚧",`Sin iniciar en ninguna WTG: ${sin.join(", ")}.`]);
- const dn7=A.filter(a=>isDano(a)&&toD(a)&&Date.now()-toD(a).getTime()<7*864e5).length;if(dn7)R.push(["⚠️",`${dn7} daño${dn7>1?"s":""} reportado${dn7>1?"s":""} en los últimos 7 días: ver pestaña Acta → Daños y generar el reporte para la NCR.`]);
+ const dab=A.filter(a=>isDano(a)&&!cerrado(a)).length;if(dab)R.push(["⚠️",`${dab} daño${dab>1?"s":""} abierto${dab>1?"s":""}: cerrarlo${dab>1?"s":""} con evidencia fotográfica desde Acta → Daños.`]);
  const hoyA=A.some(x=>{const d=toD(x);return d&&d.toDateString()===new Date().toDateString()});
  if(!hoyA&&new Date().getHours()>=15)R.push(["📝","Todavía no se cargó el acta de hoy. Anotá los trabajos antes de irte."]);
  const lb=+(localStorage.getItem("respaldo")||0);if(!lb||Date.now()-lb>7*864e5)R.push(["💾","Hace más de una semana que no bajás un respaldo en este dispositivo (botón al pie)."]);
@@ -673,7 +673,7 @@ function vNov(){
  h+=tile("rec","s4 rw","Recomendaciones",`<div class="nl">${R.length?R.map(([e,tx])=>`<div class="nw"><span class="e">${e}</span><div>${esc(tx)}</div></div>`).join(""):`<div class="sub">Todo en orden por ahora.</div>`}</div>`);
  h+=tile("fin","s4 r4",`WTG sin pendientes · ${fin.length}/${NW}`,`<div class="ctr">${donut([[fin.length,"var(--ok)"]],fin.length,"de "+NW,100)}</div><div class="chips" style="justify-content:center;margin-top:6px">${fin.map(w=>`<span class="chip d" onclick="event.stopPropagation();goWtg(${w})">✓ ${pad(w)}</span>`).join("")||`<span class="sub">Todavía ninguna</span>`}</div>`);
  h+=tile("ult","s4 r4","Últimos trabajos",`<div class="nl">${A.slice(0,2).map(a=>`<div class="nw"><span class="e">📝</span><div>${esc(String(a.text).length>90?String(a.text).slice(0,88)+"…":a.text)}<div class="t">${esc(a.byName||"—")} · ${rel(toD(a))}</div></div></div>`).join("")}${novGroups().slice(0,3).map(g=>`<div class="nw"><span class="e">✅</span><div><b>WTG ${pad(g.w)}</b>: ${g.n.slice(0,3).map(esc).join(", ")}${g.n.length>3?"…":""}<div class="t">${esc(g.by||"—")} · ${rel(g.at)}</div></div></div>`).join("")}</div>`);
- h+=tile("rec","s4 r4",`Daños (NCR) · ${dn.length}`,dn.length?`<div class="ctr row2">${donut([[sv.Menor,"#d97706"],[sv.Mayor,"#ea580c"],[sv["Crítico"],"var(--er)"]],dn.length,"daños",96)}<div class="lg"><span><i style="background:#d97706"></i>Menor ${sv.Menor}</span><span><i style="background:#ea580c"></i>Mayor ${sv.Mayor}</span><span><i style="background:var(--er)"></i>Crítico ${sv["Crítico"]}</span></div></div>${dn.slice(0,2).map(x=>`<div class="nw" style="padding:5px 0"><span class="e">⚠️</span><div style="font-size:12px"><b>WTG ${esc(x.wtg)}</b> ${esc(x.comp||"")} · ${esc(x.sev||"")}<br><button class="btn" style="padding:2px 8px;font-size:11px;margin-top:3px" onclick="event.stopPropagation();repDano(['${x.id}'],'doc')">⬇ Reporte Word</button></div></div>`).join("")}`:`<div class="sub">Sin daños reportados.</div>`,"setTab('act')");
+ h+=tile("rec","s4 r4",`Daños (NCR) · ${dn.length}`,dn.length?`<div class="ctr row2">${donut([[sv.Menor,"#d97706"],[sv.Mayor,"#ea580c"],[sv["Crítico"],"var(--er)"]],dn.length,"daños",96)}<div class="lg"><span><i style="background:#d97706"></i>Menor ${sv.Menor}</span><span><i style="background:#ea580c"></i>Mayor ${sv.Mayor}</span><span><i style="background:var(--er)"></i>Crítico ${sv["Crítico"]}</span><span style="margin-top:4px">🔴 Abiertos ${dn.filter(x=>!cerrado(x)).length} · ✅ Cerrados ${dn.filter(cerrado).length}</span></div></div>${dn.slice(0,2).map(x=>`<div class="nw" style="padding:5px 0"><span class="e">⚠️</span><div style="font-size:12px"><b>WTG ${esc(x.wtg)}</b> ${esc(x.comp||"")} · ${esc(x.sev||"")}<br><button class="btn" style="padding:2px 8px;font-size:11px;margin-top:3px" onclick="event.stopPropagation();repDano(['${x.id}'],'doc')">⬇ Reporte Word</button></div></div>`).join("")}`:`<div class="sub">Sin daños reportados.</div>`,"setTab('act')");
  return h+`</div>`}
 function histTop(){const days=actDays(),by={};H.forEach(h=>{if(h.done&&!h.restore&&!h.nueva)by[h.byName||"—"]=(by[h.byName||"—"]||0)+1});const mx=Math.max(1,...Object.values(by));
  return `<div class="bn"><div class="tile s6 r4" style="cursor:default"><div class="tt"><span>Tareas completadas · 7 días</span></div><div class="tc">${colsChart(days)}</div></div><div class="tile s6 r4" style="cursor:default"><div class="tt"><span>Por técnico (últimos ${H.length} cambios)</span></div><div class="tc">${hbars(Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([n,c])=>[esc(n),c,mx,"var(--ac)",c]))}</div></div></div>`}
@@ -717,22 +717,25 @@ const dayKey=d=>d?d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",mon
 const hhmm=d=>d?d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}):"…";
 const SEVC={Menor:"#d97706",Mayor:"#ea580c",Crítico:"var(--er)"};
 const isDano=a=>a.tipo==="dano";
+const cerrado=a=>a.estado==="cerrado";
 function entryHtml(a,withDate){
- const d=toD(a),dano=isDano(a);
- return `<div class="ae"><div class="t">${withDate&&d?d.toLocaleDateString("es-AR")+" ":""}${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.wtg&&!withDate?` · WTG ${esc(a.wtg)}`:""}${a.pending?" · ⏳ guardando…":""}${dano?` <span class="lv" style="background:${SEVC[a.sev]||SEVC.Mayor};margin-left:4px">⚠️ DAÑO${a.sev?" · "+esc(a.sev):""}</span>`:""}</div>${dano&&a.comp?`<div class="t"><b>Componente:</b> ${esc(a.comp)}</div>`:""}<div class="atx">${esc(a.text)}</div>${photoBlock(a)}${dano?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="repDano(['${a.id}'],'doc')">⬇ Reporte Word (.docx)</button><button class="btn" onclick="repDano(['${a.id}'],'pdf')">🖨 PDF / imprimir</button></div>`:""}</div>`}
+ const d=toD(a),dano=isDano(a),cr=cerrado(a),cd=a.cierreAt&&a.cierreAt.toDate?a.cierreAt.toDate():null;
+ return `<div class="ae"><div class="t">${withDate&&d?d.toLocaleDateString("es-AR")+" ":""}${hhmm(d)} · <b>${esc(a.byName||"—")}</b>${a.wtg&&!withDate?` · WTG ${esc(a.wtg)}`:""}${a.pending?" · ⏳ guardando…":""}${dano?` <span class="lv" style="background:${SEVC[a.sev]||SEVC.Mayor};margin-left:4px">⚠️ DAÑO${a.sev?" · "+esc(a.sev):""}</span> <span class="lv" style="background:${cr?"var(--ok)":"#64748b"}">${cr?"✅ CERRADO":"🔴 ABIERTO"}</span>`:""}${a.editN?` <span style="cursor:pointer;text-decoration:underline" onclick="showEdits('${a.id}')" title="Ver versiones anteriores">· ✏️ editado${a.editN>1?" ×"+a.editN:""} por ${esc(a.editedByName||"—")}</span>`:""}</div>${dano&&a.comp?`<div class="t"><b>Componente:</b> ${esc(a.comp)}</div>`:""}<div class="atx">${esc(a.text)}</div>${dano&&cr?`<div style="margin-top:6px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ok) 14%,transparent);border:1px solid var(--ok)"><div class="t" style="margin:0"><b style="color:var(--ok)">✅ Cierre</b> · ${esc(a.cierreByName||"—")} · ${cd?cd.toLocaleDateString("es-AR")+" "+hhmm(cd):"…"}</div><div class="atx" style="font-size:13px">${esc(a.cierreTxt||"")}</div></div>`:""}${photoBlock(a)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="openEdit('${a.id}')">✏️ Editar</button>${dano?(cr?`<button class="btn" onclick="reopenCase('${a.id}')">↩ Reabrir</button>`:`<button class="btn" style="border-color:var(--ok);color:var(--ok)" onclick="openClose('${a.id}')">✅ Cerrar caso (con foto)</button>`)+`<button class="btn" onclick="repDano(['${a.id}'],'doc')">⬇ Reporte Word (.docx)</button><button class="btn" onclick="repDano(['${a.id}'],'pdf')">🖨 PDF / imprimir</button>`:""}</div></div>`}
 function photoBlock(a){
- if(!a.nfotos)return "";
- if(!PHshow[a.id])return `<button class="btn" style="margin-top:6px" onclick="showPh('${a.id}')">📷 Ver ${a.nfotos} foto${a.nfotos>1?"s":""}</button>`;
+ const n0=a.nfotos||0,n1=a.cierreFotos||0;if(!n0&&!n1)return "";
+ if(!PHshow[a.id])return `<button class="btn" style="margin-top:6px" onclick="showPh('${a.id}')">📷 Ver ${n0+n1} foto${n0+n1>1?"s":""}${n1?` (${n1} de cierre)`:""}</button>`;
  const L=PH[a.id];if(!L)return `<div class="sub" style="margin:6px 0 0">Cargando fotos…</div>`;
  if(!L.length)return `<div class="sub" style="margin:6px 0 0">No se pudieron cargar las fotos (¿sin conexión?).</div>`;
- return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${L.map((f,k)=>`<img src="${f.data}" alt="Foto ${k+1}" style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer" onclick="openImg('${a.id}',${k})">`).join("")}</div>`}
+ const th=(f,k)=>`<img src="${f.data}" alt="Foto ${k+1}" style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer" onclick="openImg('${a.id}',${k})">`,ap=[],ci=[];
+ L.forEach((f,k)=>(f.fase==="cierre"?ci:ap).push(th(f,k)));
+ return (ap.length?`<div class="t" style="margin-top:6px">Evidencia del daño</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${ap.join("")}</div>`:"")+(ci.length?`<div class="t" style="margin-top:6px;color:var(--ok)">Evidencia de cierre</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${ci.join("")}</div>`:"")}
 async function getPh(id){
  if(PH[id])return PH[id];if(PHload[id])return PHload[id];
  return PHload[id]=(async()=>{let r=[];try{const sn=await getDocs(query(fotosCol,where("actaId","==",id)));r=sn.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);PH[id]=r}catch(e){}delete PHload[id];return r})()}
 window.showPh=async id=>{PHshow[id]=true;render(true);await getPh(id);render(true)};
 window.openImg=(id,k)=>{const f=(PH[id]||[])[k];if(!f)return;$("mub").innerHTML=`<img src="${f.data}" style="width:100%;border-radius:10px;display:block"><div style="text-align:right;margin-top:8px"><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex"};
 function actaList(){
- const L=A.filter(a=>aFil==="all"||(aFil==="dano")===isDano(a));
+ const L=A.filter(a=>aFil==="all"||(aFil==="dano"?isDano(a):aFil==="abierto"?isDano(a)&&!cerrado(a):!isDano(a)));
  if(!L.length)return `<div class="sub">${A.length?"No hay registros de este tipo.":"Todavía no hay registros. Escribí el primero arriba."}</div>`;
  let h="",last="";
  L.forEach(a=>{const d=toD(a),k=dayKey(d);
@@ -753,7 +756,7 @@ function vActa(){
  <div><button class="btn pri" style="${dn?"background:var(--er);border-color:var(--er)":""}" onclick="addActa()">${dn?"Registrar daño":"Registrar en el acta"}</button></div>
  <div class="sub" style="margin:8px 0 0">Cada registro queda guardado con fecha, hora y tu nombre. No se puede editar ni borrar: si hay un error, agregá una corrección. ${dn?"Con el daño registrado se genera un reporte descargable con las fotos.":""}</div></div>
  <!--SPLIT--><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Acta de avances</h2><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" onclick="dlActa()">⬇ Descargar</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div>
- <div class="chips" style="margin:6px 0 8px"><button class="chip ${aFil==="all"?"d":""}" onclick="setAFil('all')">Todo (${A.length})</button><button class="chip ${aFil==="acta"?"d":""}" onclick="setAFil('acta')">📝 Actas (${A.length-nDano()})</button><button class="chip ${aFil==="dano"?"d":""}" onclick="setAFil('dano')">⚠️ Daños (${nDano()})</button>${nDano()?`<button class="btn" onclick="repAll()">⬇ Reporte de todos los daños</button>`:""}</div>
+ <div class="chips" style="margin:6px 0 8px"><button class="chip ${aFil==="all"?"d":""}" onclick="setAFil('all')">Todo (${A.length})</button><button class="chip ${aFil==="acta"?"d":""}" onclick="setAFil('acta')">📝 Actas (${A.length-nDano()})</button><button class="chip ${aFil==="dano"?"d":""}" onclick="setAFil('dano')">⚠️ Daños (${nDano()})</button><button class="chip ${aFil==="abierto"?"d":""}" onclick="setAFil('abierto')">🔴 Abiertos (${A.filter(a=>isDano(a)&&!cerrado(a)).length})</button>${nDano()?`<button class="btn" onclick="repAll()">⬇ Reporte de todos los daños</button>`:""}</div>
  <div id="alist">${actaList()}</div></div>`}
 window.setDraft=v=>{draft=v};window.setDraftW=v=>{draftW=v};window.setDraftC=v=>{draftC=v};window.setDraftS=v=>{draftS=v};
 window.setTipo=t=>{aTipo=t;render()};window.setAFil=f=>{aFil=f;render()};
@@ -787,14 +790,61 @@ window.addActa=()=>{
  draft="";draftW="";draftC="";draftPh=[];render();
 };
 
+
+/* ---------- Editar registro, historial de ediciones y cierre de caso con evidencia ---------- */
+const MST="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box;margin:6px 0";
+const edCol=id=>collection(db,...PROJ,"acta",id,"ediciones");
+const failMsg=(e,what)=>toast(e.code==="permission-denied"?"❌ Sin permiso: "+what+" NO se guardó (¿publicaste las reglas nuevas?)":"❌ "+what+" no se guardó: "+e.message);
+window.openEdit=id=>{const a=A.find(x=>x.id===id);if(!a)return;if(!canEdit()){if(!NAME)openUser();return}
+ const dn=isDano(a);
+ $("mub").innerHTML=`<h2>✏️ Editar ${dn?"daño":"registro"}</h2><div class="sub">Queda guardado quién lo editó y la versión anterior.</div>${dn?`<input id="ec" maxlength="80" placeholder="Componente / sistema" value="${esc(a.comp||"")}" style="${MST}"><select id="es" style="${MST}">${["Menor","Mayor","Crítico"].map(v=>`<option ${(a.sev||"Mayor")===v?"selected":""}>${v}</option>`).join("")}</select>`:""}<textarea id="et" rows="6" maxlength="2000" style="${MST};resize:vertical">${esc(a.text)}</textarea><input id="ew" maxlength="40" placeholder="${dn?"WTG afectada":"WTG involucrados (opcional)"}" value="${esc(a.wtg||"")}" style="${MST}"><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px"><button class="btn pri" onclick="saveEdit('${id}')">Guardar cambios</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.saveEdit=id=>{const a=A.find(x=>x.id===id);if(!a)return;const dn=isDano(a),text=$("et").value.trim(),wtg=$("ew").value.trim();
+ if(!text){toast("El texto no puede quedar vacío");return}if(dn&&!/\d/.test(wtg)){toast("Indicá la WTG afectada (ej: 05)");return}
+ const comp=dn?$("ec").value.trim():"",sev=dn?$("es").value:"";
+ if(text===a.text&&wtg===(a.wtg||"")&&(!dn||(comp===(a.comp||"")&&sev===(a.sev||"")))){$m();return}
+ const upd={text,wtg,editedBy:uid,editedByName:NAME,editedAt:serverTimestamp(),editN:(a.editN||0)+1};if(dn){upd.comp=comp;upd.sev=sev}
+ const b=writeBatch(db);b.update(doc(actaCol,id),upd);
+ b.set(doc(edCol(id)),{kind:"edit",prevText:a.text,prevWtg:a.wtg||"",prevComp:a.comp||"",prevSev:a.sev||"",by:uid,byName:NAME,at:serverTimestamp()});
+ $m();b.commit().catch(e=>failMsg(e,"La edición"))};
+window.showEdits=async id=>{
+ $("mub").innerHTML=`<h2>✏️ Versiones anteriores</h2><div class="sub" id="edl">Cargando…</div><div style="text-align:right"><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex";
+ try{const sn=await getDocs(query(edCol(id),orderBy("at","desc")));
+  $("edl").innerHTML=sn.empty?"No hay versiones guardadas.":sn.docs.map(d=>{const x=d.data(),t=x.at&&x.at.toDate?x.at.toDate():null;
+   return `<div class="ae"><div class="t"><b>${x.kind==="cierre"?"✅ Cierre del caso":x.kind==="reapertura"?"↩ Reapertura":"✏️ Edición"}</b> · ${esc(x.byName||"—")} · ${t?t.toLocaleDateString("es-AR")+" "+hhmm(t):"…"}</div>${x.kind==="edit"?`<div class="t">Antes decía${x.prevComp?" ("+esc(x.prevComp)+")":""}${x.prevWtg?" · WTG "+esc(x.prevWtg):""}:</div><div class="atx" style="font-size:13px">${esc(x.prevText)}</div>`:""}</div>`}).join("")}
+ catch(e){$("edl").textContent="No se pudo cargar (¿sin conexión?)."}};
+let clPh=[];
+const clThumbs=()=>clPh.map((f,i)=>`<span style="position:relative;display:inline-block;margin:0 6px 6px 0"><img src="${f.data}" style="width:78px;height:78px;object-fit:cover;border-radius:10px;border:1px solid var(--bd)"><button class="btn" style="position:absolute;top:-6px;right:-6px;padding:0 6px;border-radius:50%;background:var(--card)" onclick="rmFotoCl(${i})" aria-label="Quitar foto">✕</button></span>`).join("");
+window.rmFotoCl=i=>{clPh.splice(i,1);$("clt").innerHTML=clThumbs()};
+window.addFotosCl=async inp=>{const fs=[...inp.files];inp.value="";let bad=0;
+ for(const f of fs){if(clPh.length>=4){toast("Máximo 4 fotos");break}try{clPh.push(await shrink(f))}catch(e){bad++}}
+ if(bad)toast("No se pudo leer "+bad+" foto"+(bad>1?"s":"")+" (formato no compatible)");$("clt").innerHTML=clThumbs()};
+window.openClose=id=>{const a=A.find(x=>x.id===id);if(!a)return;if(!canEdit()){if(!NAME)openUser();return}clPh=[];
+ $("mub").innerHTML=`<h2>✅ Cerrar caso</h2><div class="sub">WTG ${esc(a.wtg||"")}${a.comp?" · "+esc(a.comp):""}. Para cerrarlo hace falta una descripción de lo que se hizo y <b>al menos 1 foto de evidencia</b> de la solución.</div><textarea id="ct" rows="4" maxlength="1000" placeholder="¿Qué se hizo para resolverlo? (obligatorio)" style="${MST};resize:vertical"></textarea><div id="clt"></div><label class="btn" style="display:inline-block;cursor:pointer;margin:6px 0 10px">📷 Agregar fotos de evidencia (1 a 4)<input type="file" accept="image/*" multiple style="display:none" onchange="addFotosCl(this)"></label><div style="display:flex;flex-direction:column;gap:8px"><button class="btn pri" style="background:var(--ok);border-color:var(--ok)" onclick="saveClose('${id}')">Cerrar caso</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.saveClose=id=>{const a=A.find(x=>x.id===id);if(!a)return;const t=($("ct").value||"").trim();
+ if(!t){toast("Describí qué se hizo para cerrar el caso");return}
+ if(!clPh.length){toast("Falta la evidencia fotográfica: agregá al menos 1 foto");return}
+ const ph=clPh.slice(),b=writeBatch(db);
+ b.update(doc(actaCol,id),{estado:"cerrado",cierreTxt:t,cierreBy:uid,cierreByName:NAME,cierreAt:serverTimestamp(),cierreFotos:ph.length});
+ ph.forEach((f,k)=>b.set(doc(fotosCol),{actaId:id,i:100+k,fase:"cierre",data:f.data,w:f.w,h:f.h,by:uid,at:serverTimestamp()}));
+ b.set(doc(edCol(id)),{kind:"cierre",by:uid,byName:NAME,at:serverTimestamp()});
+ if(PH[id])PH[id]=[...PH[id],...ph.map((f,k)=>({...f,i:100+k,fase:"cierre",actaId:id}))];
+ clPh=[];$m();b.commit().catch(e=>failMsg(e,"El cierre"))};
+window.reopenCase=id=>{if(!canEdit()){if(!NAME)openUser();return}if(!confirm("¿Reabrir este caso? Queda registrado quién lo reabrió."))return;
+ const b=writeBatch(db);b.update(doc(actaCol,id),{estado:"abierto"});b.set(doc(edCol(id)),{kind:"reapertura",by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().catch(e=>failMsg(e,"La reapertura"))};
+
 /* ---------- Reporte de daño (para NCR): Word (.doc con fotos incrustadas) o PDF desde imprimir ---------- */
 const rid=a=>{const d=toD(a)||new Date();return "RD-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"-"+String(a.id).slice(0,4).toUpperCase()};
-function repEntry(a,ph,src){
+function repEntry(a,ph0,src){
+ const ph=ph0.filter(f=>f.fase!=="cierre"),ci=ph0.filter(f=>f.fase==="cierre"),cd=a.cierreAt&&a.cierreAt.toDate?a.cierreAt.toDate():null;
  const d=toD(a)||new Date(),r=(k,v)=>`<tr><td class="k">${k}</td><td>${v||"&nbsp;"}</td></tr>`;
  return `<div class="pg"><h1>REPORTE DE DAÑO <span>(base para NCR)</span></h1>
  <table>${r("N° de reporte",rid(a))}${r("Proyecto","PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW")}${r("Fecha y hora",d.toLocaleString("es-AR"))}${r("WTG afectada",esc(a.wtg))}${r("Componente / sistema",esc(a.comp))}${r("Severidad",esc(a.sev))}${r("Reportado por",esc(a.byName))}</table>
  <h2>Descripción del daño</h2><div class="box">${esc(a.text).replace(/\n/g,"<br>")}</div>
  <h2>Evidencia fotográfica (${ph.length})</h2>${ph.length?ph.map((f,k)=>{const wd=Math.min(460,f.w>=f.h?460:Math.round(340*f.w/f.h)),ht=Math.round(wd*f.h/f.w);return `<p class="ph"><img src="${src(a,k,f)}" width="${wd}" height="${ht}"><br><i>Foto ${k+1}</i></p>`}).join(""):`<div class="box">Sin fotos adjuntas.</div>`}
+ ${cerrado(a)?`<h2>Cierre del caso</h2><table>${r("Estado","CERRADO")}${r("Cerrado por",esc(a.cierreByName))}${r("Fecha y hora",cd?cd.toLocaleString("es-AR"):"")}${r("Acción realizada",esc(a.cierreTxt).replace(/\n/g,"<br>"))}</table><h2>Evidencia fotográfica del cierre (${ci.length})</h2>${ci.map((f,k)=>{const wd=Math.min(460,f.w>=f.h?460:Math.round(340*f.w/f.h)),ht=Math.round(wd*f.h/f.w);return `<p class="ph"><img src="${src(a,100+k,f)}" width="${wd}" height="${ht}"><br><i>Foto de cierre ${k+1}</i></p>`}).join("")}`:""}
  <h2>A completar por el responsable</h2>
  <table>${r("N° de NCR asignado","")}${r("Causa probable","<br><br>")}${r("Acción correctiva / contención","<br><br>")}${r("Responsable","")}${r("Fecha límite","")}${r("Revisó / aprobó","")}${r("Cierre (fecha y firma)","")}</table></div>`}
 const REPCSS=`body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111}h1{font-size:18pt;margin:0 0 10px;border-bottom:3px solid #d97706;padding-bottom:4px}h1 span{font-size:10pt;font-weight:normal;color:#666}h2{font-size:12pt;margin:14px 0 6px;color:#333}table{border-collapse:collapse;width:100%}td{border:1px solid #999;padding:5px 8px;vertical-align:top}td.k{width:34%;background:#f0f0f0;font-weight:bold}.box{border:1px solid #999;padding:8px;min-height:30px}.ph{margin:6px 0;page-break-inside:avoid}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}`;
@@ -824,7 +874,7 @@ function dlDocx(L,P2,rid){
   const wd=f.w>=f.h?420:Math.round(300*f.w/f.h),ht=Math.round(wd*f.h/f.w),cx=wd*9525,cy=ht*9525;
   return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Foto ${n}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImg${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`};
  let body="";
- L.forEach((a,idx)=>{const d=toD(a)||new Date(),ph=P2[a.id]||[];
+ L.forEach((a,idx)=>{const d=toD(a)||new Date(),ph0=P2[a.id]||[],ph=ph0.filter(f=>f.fase!=="cierre"),ci=ph0.filter(f=>f.fase==="cierre"),cd=a.cierreAt&&a.cierreAt.toDate?a.cierreAt.toDate():null;
   if(idx)body+=`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
   body+=para(run("REPORTE DE DAÑO ",{b:1,sz:18})+run("(base para NCR)",{sz:10,c:"666666"}),{bb:1,after:160});
   body+=tbl([["N° de reporte",rid(a)],["Proyecto","PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW"],["Fecha y hora",d.toLocaleString("es-AR")],["WTG afectada",a.wtg||""],["Componente / sistema",a.comp||""],["Severidad",a.sev||""],["Reportado por",a.byName||""]]);
@@ -833,6 +883,10 @@ function dlDocx(L,P2,rid){
   body+=para(run(`Evidencia fotográfica (${ph.length})`,{b:1,sz:12,c:"333333"}),{before:200,after:80});
   if(!ph.length)body+=para(run("Sin fotos adjuntas.",{i:1}));
   ph.forEach((f,k)=>{body+=para(img(f),{after:20})+para(run(`Foto ${k+1}`,{i:1,sz:9,c:"666666"}),{after:120})});
+  if(cerrado(a)){body+=para(run("Cierre del caso",{b:1,sz:12,c:"2E7D32"}),{before:200,after:80});
+   body+=tbl([["Estado","CERRADO"],["Cerrado por",a.cierreByName||""],["Fecha y hora",cd?cd.toLocaleString("es-AR"):""],["Acción realizada",a.cierreTxt||""]]);
+   body+=para(run(`Evidencia fotográfica del cierre (${ci.length})`,{b:1,sz:12,c:"333333"}),{before:200,after:80});
+   ci.forEach((f,k)=>{body+=para(img(f),{after:20})+para(run(`Foto de cierre ${k+1}`,{i:1,sz:9,c:"666666"}),{after:120})})}
   body+=para(run("A completar por el responsable",{b:1,sz:12,c:"333333"}),{before:200,after:80});
   body+=tbl([["N° de NCR asignado",""],["Causa probable","",1],["Acción correctiva / contención","",1],["Responsable",""],["Fecha límite",""],["Revisó / aprobó",""],["Cierre (fecha y firma)",""]]);
  });
@@ -848,7 +902,7 @@ async function reportFor(ids,mode){
  const L=ids.map(id=>A.find(x=>x.id===id)).filter(Boolean).sort((a,b)=>(toD(a)||0)-(toD(b)||0));
  if(!L.length){toast("No hay daños para reportar");return}
  toast("Preparando reporte…",true);
- const P2={};for(const a of L)P2[a.id]=a.nfotos?await getPh(a.id):[];
+ const P2={};for(const a of L)P2[a.id]=(a.nfotos||a.cierreFotos)?await getPh(a.id):[];
  if(L.some(a=>a.nfotos&&!(P2[a.id]||[]).length))toast("Aviso: alguna foto no se pudo cargar (¿sin conexión?). El reporte sale sin ella.");
  const stamp=new Date().toISOString().slice(0,10),nm=L.length===1?rid(L[0]):"reportes-danos-"+stamp;
  if(mode==="pdf"){
