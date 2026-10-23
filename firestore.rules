@@ -12,10 +12,11 @@ service cloud.firestore {
       allow read: if signed();
       // Alta: solo para la carga inicial de datos (ids con formato "WTG-SISTEMA", ej. 05-1)
       allow create: if signed() && taskId.matches('^[0-9]{1,2}-[0-9]{1,2}$');
-      // Un técnico solo puede cambiar el estado y quién/cuándo lo hizo.
-      // Cambiar cualquier otro campo (ej. observaciones) o restaurar requiere admin.
+      // Un técnico puede cambiar el estado, quién/cuándo lo hizo y la observación (nota de hasta 200 caracteres).
+      // Cambiar cualquier otro campo o restaurar datos requiere admin.
       allow update: if signed() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done','by','byName','at'])
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done','by','byName','at','note'])
+          && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 200)))
         || isAdmin()
       );
       allow delete: if false;

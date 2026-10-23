@@ -353,15 +353,23 @@ async function seed(){
 }
 
 /* ---------- Escritura: una tarea por vez, con historial, sin botones de guardar ---------- */
-function setTask(w,s,target,prevOverride){
+function setTask(w,s,target,prevOverride,noteArg){
  if(!canEdit())return;
- const k=K(w,s),prev=prevOverride??done(k),b=writeBatch(db);
- b.set(doc(tasksCol,k),{w,s,done:target,by:uid,byName:NAME,at:serverTimestamp()},{merge:true});
- b.set(doc(histCol),{w,s,sys:S[s-1],done:target,prev,by:uid,byName:NAME,at:serverTimestamp()});
+ const k=K(w,s),prev=prevOverride??done(k),b=writeBatch(db),hn=noteArg!==undefined;
+ b.set(doc(tasksCol,k),{w,s,done:target,...(hn?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()},{merge:true});
+ b.set(doc(histCol),{w,s,sys:S[s-1],done:target,prev,...(hn&&noteArg?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()});
  // Con persistencia offline el commit se resuelve cuando el servidor confirma; mientras tanto la celda muestra "pendiente".
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el cambio NO se guardó":"❌ El cambio no se guardó: "+e.message));
 }
-window.tg=(w,s)=>{if(!canEdit()){if(!NAME)openUser();return}setTask(w,s,!done(K(w,s)))};
+window.tg=(w,s)=>{if(!canEdit()){if(!NAME)openUser();return}
+ const k=K(w,s);if(done(k)||note(k))openObs(w,s);else setTask(w,s,true)};
+/* Segundo toque sobre un casillero verde → observación con nota. Sobre una observación → editar / completar / quitar. */
+window.openObs=(w,s)=>{const k=K(w,s),cur=note(k)||"",ed=!done(k)&&!!cur;
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">${ed?"Esta tarea tiene una observación. Podés editarla, marcarla como completa o quitarla.":"La tarea está completa. Si hay algo para observar, escribilo (pasa a “con observación”)."}</div><textarea id="obt" maxlength="200" rows="3" placeholder="Ej: falta torque en bridas, pendiente repuesto…" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(cur)}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="obsSave(${w},${s})">Guardar observación</button>${ed?`<button class="btn" onclick="obsDone(${w},${s})">✓ Marcar completo</button><button class="btn" onclick="obsClear(${w},${s})">Quitar observación (queda pendiente)</button>`:""}<button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex";setTimeout(()=>{const t=$("obt");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}},60)};
+window.obsSave=(w,s)=>{const v=($("obt").value||"").trim();if(!v){toast("Escribí la observación");return}$m();setTask(w,s,false,undefined,v)};
+window.obsDone=(w,s)=>{$m();setTask(w,s,true,undefined,"")};
+window.obsClear=(w,s)=>{$m();setTask(w,s,false,undefined,"")};
 window.revert=id=>{const h=H.find(x=>x.id===id);if(!h||!isAdmin)return;if(confirm(`¿Volver WTG ${pad(h.w)} · ${h.s>0&&S[h.s-1]?S[h.s-1]:h.sys} a "${h.prev?"completo":"pendiente"}"?`))setTask(h.w,h.s,h.prev)};
 
 window.restoreAll=async()=>{
@@ -687,7 +695,7 @@ function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"
  h+=`</div></div>`;
  if(mapS){const f=[];for(let w=1;w<=NW;w++)if(!done(K(w,mapS)))f.push(w);
   h=`<div class="card" style="padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><b>${esc(S[mapS-1])}: falta en ${f.length} de ${NW} WTG</b><button class="btn" onclick="setMapS(0)">✕</button></div>${f.length?`<div class="chips">${f.map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)}</button>`).join("")}</div>`:`<div style="color:var(--ok);font-weight:700">🎉 Completo en todas</div>`}</div>`+h}
- return h+`<div class="sub" style="margin-top:8px">Tocá el nombre de un sistema para ver en qué WTG falta. La barra de color a la izquierda de cada WTG indica su avance. Deslizá para ver todos los sistemas. Tocá un casillero para marcar/desmarcar: se actualiza en todos los dispositivos.</div>`}
+ return h+`<div class="sub" style="margin-top:8px">Tocá el nombre de un sistema para ver en qué WTG falta. La barra de color a la izquierda de cada WTG indica su avance. Deslizá para ver todos los sistemas. Tocá un casillero pendiente para marcarlo completo (verde). Un segundo toque sobre el verde lo pasa a “con observación” y te deja escribir la nota. Se actualiza en todos los dispositivos.</div>`}
 function vWtg(){if(!sel&&matchMedia("(min-width:900px)").matches)sel=MI||1;let h=`<div class="md"><div class="mdl"><div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button></div><div class="wg">`;
  for(let w=1;w<=NW;w++){const p=Math.round(wp(w)/NS*100);
   h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span>${pp(w)?`<span style="display:block;color:var(--nt);font-weight:600">🔧 ${pp(w)} pieza${pp(w)>1?"s":""}</span>`:""}</button>`}
@@ -700,7 +708,7 @@ function vWtg(){if(!sel&&matchMedia("(min-width:900px)").matches)sel=MI||1;let h
 function vHist(){
  if(!H.length)return `<div class="card sub">Todavía no hay cambios registrados.</div>`;
  return histTop()+`<div class="card"><h2>Últimas modificaciones</h2>`+H.map(h=>{
-  const what=h.restore?"Restauró los datos originales":h.nueva?`Nueva tarea: ${esc(h.sys)}`:`WTG ${pad(h.w)} · ${esc(h.s>0&&S[h.s-1]?S[h.s-1]:h.sys)} → ${h.done?"completo":"pendiente"}`;
+  const what=h.restore?"Restauró los datos originales":h.nueva?`Nueva tarea: ${esc(h.sys)}`:`WTG ${pad(h.w)} · ${esc(h.s>0&&S[h.s-1]?S[h.s-1]:h.sys)} → ${h.note?"observación: "+esc(h.note):h.done?"completo":"pendiente"}`;
   const at=h.at&&h.at.toDate?h.at.toDate():null;
   return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore&&!h.nueva?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
 
