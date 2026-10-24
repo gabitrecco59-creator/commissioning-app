@@ -364,7 +364,13 @@ function setTask(w,s,target,prevOverride,noteArg){
 window.tg=(w,s)=>{if(!canEdit()){if(!NAME)openUser();return}
  const k=K(w,s);if(done(k)||note(k))openObs(w,s);else setTask(w,s,true)};
 /* Segundo toque sobre un casillero verde → observación con nota. Sobre una observación → editar / completar / quitar. */
-window.openObs=(w,s)=>{const k=K(w,s),cur=note(k)||"",ed=!done(k)&&!!cur;
+/* Toque sobre un casillero verde → preguntar: volver a sin realizar o agregar observación. */
+window.openAsk=(w,s)=>{
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">La tarea está completa. ¿Qué querés hacer?</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="askUndo(${w},${s})">↩ Volver a sin realizar</button><button class="btn" onclick="openObs(${w},${s},true)">✏️ Agregar una observación</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.askUndo=(w,s)=>{$m();setTask(w,s,false,undefined,"")};
+window.openObs=(w,s,force)=>{const k=K(w,s),cur=note(k)||"",ed=!done(k)&&!!cur;
+ if(!force&&done(k)&&!cur){openAsk(w,s);return}
  $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">${ed?"Esta tarea tiene una observación. Podés editarla, marcarla como completa o quitarla.":"La tarea está completa. Si hay algo para observar, escribilo (pasa a “con observación”)."}</div><textarea id="obt" maxlength="200" rows="3" placeholder="Ej: falta torque en bridas, pendiente repuesto…" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(cur)}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="obsSave(${w},${s})">Guardar observación</button>${ed?`<button class="btn" onclick="obsDone(${w},${s})">✓ Marcar completo</button><button class="btn" onclick="obsClear(${w},${s})">Quitar observación (queda pendiente)</button>`:""}<button class="btn" onclick="$m()">Cancelar</button></div>`;
  $("mu").style.display="flex";setTimeout(()=>{const t=$("obt");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}},60)};
 window.obsSave=(w,s)=>{const v=($("obt").value||"").trim();if(!v){toast("Escribí la observación");return}$m();setTask(w,s,false,undefined,v)};
