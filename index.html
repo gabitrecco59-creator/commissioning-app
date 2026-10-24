@@ -415,7 +415,7 @@ function ring(p){const r=62,c=2*Math.PI*r;return `<div class="ring"><svg width="
 
 
 /* ---------- Clima (Open-Meteo, gratis y sin clave) + Novedades ---------- */
-const WX_LAT=-36.8927,WX_LON=-60.3225;            // Olavarría, Buenos Aires (aprox. del parque; editar si hace falta)
+const WX_LAT=-36.961622,WX_LON=-60.497199;       // PE Olavarría: punto del parque marcado en Google Maps
 const WX_CAUT=10,WX_STOP=17;                       // m/s a 100 m: precaución / suspender trabajos en altura. REFERENCIA ORIENTATIVA: manda el procedimiento de seguridad del proyecto.
 const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=wind_speed_100m,wind_direction_100m,wind_gusts_10m,weather_code,temperature_2m,precipitation_probability&wind_speed_unit=ms&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=3`;
 async function loadWx(){
