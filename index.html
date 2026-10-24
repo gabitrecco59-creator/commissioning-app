@@ -25,6 +25,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f3f5fa;--card:#fff;--tx:#1a2233;--mu:#68718a;--bd:#e2e6f0;--pe:#e4e8f1;--ok:#16a34a;--nt:#f59e0b;--ac:#2563eb;--er:#dc2626;color-scheme:light}
@@ -252,7 +253,7 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 </style></head><body>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
- <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
 </div>
 <div id="banner"></div>
 <div class="tabs" id="tabs"></div>
@@ -416,6 +417,26 @@ window.restoreAll=async()=>{
 };
 
 /* ---------- Usuario ---------- */
+
+/* ---------- Compartir e instalar ---------- */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e});
+window.addEventListener("appinstalled",()=>{deferredPrompt=null;toast("App instalada",true)});
+const appUrl=()=>location.href.split("#")[0].split("?")[0];
+window.shareModal=()=>{const url=appUrl(),std=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+ $("mub").innerHTML=`<h2>🔗 Compartir e instalar</h2><div class="sub">Mandá el enlace al equipo. Entran y ven el avance en tiempo real.</div>
+  <div style="display:flex;gap:6px;margin-top:8px"><input id="shurl" readonly value="${esc(url)}" aria-label="Enlace de la app" style="flex:1;min-width:0;margin:0;padding:9px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:12px ui-monospace,Menlo,Consolas,monospace"><button class="btn pri" onclick="shCopy()">Copiar</button>${navigator.share?`<button class="btn" onclick="shNative()">Enviar…</button>`:""}</div>
+  <div id="shqr" aria-label="Código QR del enlace" style="display:grid;place-items:center;padding:12px;background:#fff;border-radius:12px;width:max-content;margin:14px auto 4px"></div>
+  <div class="sub" style="text-align:center">Escaneá el QR con el celular para abrir la app.</div>
+  <div class="sub" style="margin-top:12px"><b>Instalar en este equipo</b></div>
+  ${std?`<div class="sub">Ya estás usando la app instalada.</div>`:deferredPrompt?`<button class="btn pri" style="margin:6px 0" onclick="shInstall()">Descargar e instalar la app</button>`:""}
+  <ol style="margin:6px 0 0 18px;padding:0;font-size:13px;line-height:1.5;color:var(--mu)"><li><b>Android (Chrome):</b> menú ⋮ → <i>Instalar app</i> o <i>Agregar a pantalla principal</i>.</li><li><b>iPhone / iPad (Safari):</b> botón Compartir ⬆︎ → <i>Agregar a inicio</i>.</li><li><b>PC (Chrome o Edge):</b> ícono de instalar en la barra de direcciones, o menú → <i>Instalar Commissioning PE Olavarría</i>.</li></ol>
+  <div style="text-align:right;margin-top:12px"><button class="btn" onclick="$m()">Cerrar</button></div>`;
+ $("mu").style.display="flex";
+ try{if(window.QRCode)new QRCode($("shqr"),{text:url,width:168,height:168,correctLevel:QRCode.CorrectLevel.M});else $("shqr").style.display="none"}catch(e){$("shqr").style.display="none"}};
+window.shCopy=async()=>{const i=$("shurl");try{await navigator.clipboard.writeText(i.value);toast("Enlace copiado",true)}catch(e){i.select();toast("Seleccionado: copialo con Ctrl+C")}};
+window.shNative=async()=>{try{await navigator.share({title:"Commissioning PE Olavarría",text:"Avance de commissioning del parque",url:appUrl()})}catch(e){}};
+window.shInstall=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice.catch(()=>{});deferredPrompt=null;$m()};
 window.openUser=()=>{
  $("mub").innerHTML=`<h2>👤 ¿Quién sos?</h2><div class="sub">Tu nombre queda en el historial junto a cada cambio.</div>
  <input id="nm" placeholder="Nombre del técnico" value="${esc(NAME)}" maxlength="30">
