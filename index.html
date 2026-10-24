@@ -251,6 +251,42 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
 </style></head><body>
+<div id="gate" role="dialog" aria-label="Ingreso" hidden>
+<form id="gate-form" autocomplete="on">
+ <svg viewBox="0 0 160 190" width="64" height="76" aria-hidden="true"><g fill="#fff"><path d="M75 80 L72 184 L88 184 L85 80Z"/><g class="wl-rot"><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z"/><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z" transform="rotate(120 80 80)"/><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z" transform="rotate(240 80 80)"/></g><circle cx="80" cy="80" r="8"/></g></svg>
+ <h2>Ingresá para empezar</h2><p>Primera vez en este equipo: escribí tus <b>iniciales Vestas</b> y la contraseña del equipo. Después te saludamos por tu nombre.</p>
+ <label for="g-ini">Iniciales Vestas</label><input id="g-ini" name="username" autocomplete="username" maxlength="30" placeholder="Ej: GT" required>
+ <label for="g-pw">Contraseña</label><input id="g-pw" name="password" type="password" autocomplete="current-password" required>
+ <div id="g-err" role="alert"></div><button id="g-btn" type="submit">Entrar</button>
+</form>
+<style>
+#gate{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,#0e7490,#6d28d9);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#fff}
+#gate[hidden]{display:none}
+#gate form{width:min(100%,380px);background:rgba(8,14,28,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:26px 22px;display:flex;flex-direction:column;gap:6px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#gate svg{align-self:center}#gate h2{margin:6px 0 0;font-size:24px;font-weight:800;color:#fff;background:none;-webkit-text-fill-color:#fff}#gate p{margin:4px 0 10px;font-size:14px;line-height:1.45;opacity:.9}
+#gate label{text-align:left;font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.8;margin-top:6px}
+#gate input{width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.95);color:#10203a;font:600 17px system-ui,sans-serif}
+#gate #g-err{min-height:20px;color:#fecaca;font-size:14px;font-weight:700;margin-top:6px}
+#gate button{margin-top:4px;padding:14px;border:0;border-radius:12px;background:#fff;color:#6d28d9;font:800 17px system-ui,sans-serif;cursor:pointer}
+#gate.shake form{animation:gsh .4s}@keyframes gsh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+</style>
+<script>(function(){
+var g=document.getElementById("gate");if(!g)return;
+var H="fcead8219610badddcc10a1666ecf82d8537fbca354eb98b0112a8db75894ce0",KEY="acc",NK="tecnico";
+function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")})}
+var ok=false,nm="";try{ok=localStorage.getItem(KEY)===H;nm=localStorage.getItem(NK)||""}catch(e){}
+if(ok&&nm)return;
+g.hidden=false;var i=document.getElementById("g-ini");i.value=nm;
+setTimeout(function(){(nm?document.getElementById("g-pw"):i).focus()},300);
+document.getElementById("gate-form").addEventListener("submit",function(e){e.preventDefault();
+ var n=i.value.trim(),p=document.getElementById("g-pw").value,er=document.getElementById("g-err");if(!n)return;
+ if(!(window.crypto&&crypto.subtle)){er.textContent="Abrí la app desde el enlace seguro (https).";return}
+ sha(p).then(function(h){
+  if(h!==H){er.textContent="Contraseña incorrecta";g.classList.remove("shake");void g.offsetWidth;g.classList.add("shake");document.getElementById("g-pw").select();return}
+  try{localStorage.setItem(KEY,H);localStorage.setItem(NK,n)}catch(x){}
+  g.hidden=true;document.dispatchEvent(new CustomEvent("gate-ok",{detail:n}));
+ });});
+})();</script></div>
 <div id="welcome" role="dialog" aria-label="Bienvenida" tabindex="-1">
 <svg class="wl-wind" viewBox="0 0 400 800" preserveAspectRatio="none" aria-hidden="true"><path d="M-20 140 H420"/><path d="M-20 260 H420"/><path d="M-20 520 H420"/><path d="M-20 640 H420"/><path d="M-20 720 H420"/></svg>
 <div class="wl-in">
@@ -480,6 +516,7 @@ window.openUser=()=>{
  $("mu").style.display="flex";setTimeout(()=>$("nm")&&$("nm").focus(),50)};
 window.$m=()=>{$("mu").style.display="none";$("mu").classList.remove("wide");OPENID=null};
 $("mu").addEventListener("click",e=>{if(e.target===$("mu"))$m()});
+document.addEventListener("gate-ok",e=>{NAME=String(e.detail||"").trim();try{localStorage.setItem("tecnico",NAME)}catch(x){}render(true);toast("¡Hola, "+NAME+"! 👋",true)});
 window.saveName=()=>{const v=$("nm").value.trim();if(!v)return;NAME=v;localStorage.setItem("tecnico",v);$m();render(true)};
 
 /* ---------- Conexión ---------- */
