@@ -251,6 +251,41 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
 </style></head><body>
+<div id="welcome" role="dialog" aria-label="Bienvenida" tabindex="-1">
+<svg class="wl-wind" viewBox="0 0 400 800" preserveAspectRatio="none" aria-hidden="true"><path d="M-20 140 H420"/><path d="M-20 260 H420"/><path d="M-20 520 H420"/><path d="M-20 640 H420"/><path d="M-20 720 H420"/></svg>
+<div class="wl-in">
+ <svg class="wl-t" viewBox="0 0 160 190" aria-hidden="true"><g fill="#fff"><path d="M75 80 L72 184 L88 184 L85 80Z"/><rect x="58" y="182" width="44" height="6" rx="3" opacity=".7"/><g class="wl-rot"><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z"/><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z" transform="rotate(120 80 80)"/><path d="M80 80 L73 68 L77 8 Q80 2 83 8 L87 68Z" transform="rotate(240 80 80)"/></g><circle cx="80" cy="80" r="9"/><circle cx="80" cy="80" r="3.5" fill="#0e7490"/></g></svg>
+ <div class="wl-hi" id="wl-hi">¡Bienvenido!</div>
+ <h1 class="wl-h">Commissioning PE Olavarría</h1>
+ <p class="wl-p">Seguí en tiempo real el avance de commissioning de cada aerogenerador: tareas, piezas, actas y clima del parque.</p>
+ <div class="wl-pk">Parque Eólico Olavarría · 29 aerogeneradores · 185,6 MW</div>
+ <div class="wl-bar"><i></i></div><div class="wl-tap">Tocá para entrar</div>
+</div></div>
+<style>
+#welcome{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:linear-gradient(160deg,#0e7490,#6d28d9);overflow:hidden;cursor:pointer;opacity:1;transition:opacity .6s ease,transform .6s ease;padding:24px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#welcome h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;-webkit-text-fill-color:#fff;color:#fff;text-transform:none;letter-spacing:0;display:block}
+#welcome.out{opacity:0;transform:scale(1.04);pointer-events:none}
+#welcome .wl-in{max-width:520px;width:100%}
+.wl-wind{position:absolute;inset:0;width:100%;height:100%;opacity:.28}.wl-wind path{stroke:#fff;stroke-width:2;fill:none;stroke-dasharray:90 310;stroke-linecap:round;animation:wlw 2.6s linear infinite}.wl-wind path:nth-child(2){animation-delay:-.6s;stroke-dasharray:60 340}.wl-wind path:nth-child(3){animation-delay:-1.2s}.wl-wind path:nth-child(4){animation-delay:-1.8s;stroke-dasharray:70 330}.wl-wind path:nth-child(5){animation-delay:-.3s}
+@keyframes wlw{from{stroke-dashoffset:400}to{stroke-dashoffset:-400}}
+.wl-t{width:min(46vw,190px);height:auto;filter:drop-shadow(0 10px 24px rgba(0,0,0,.35));animation:wlup .9s cubic-bezier(.2,.8,.2,1) both}
+.wl-rot{transform-origin:80px 80px;animation:wlr 5s linear infinite}
+@keyframes wlr{to{transform:rotate(360deg)}}@keyframes wlup{from{opacity:0;transform:translateY(30px) scale(.9)}to{opacity:1;transform:none}}
+.wl-hi{margin-top:10px;font-size:18px;letter-spacing:2px;text-transform:uppercase;opacity:.85;font-weight:600;animation:wlf .7s .5s both}
+.wl-h{margin:8px 0 0;font-size:clamp(30px,8vw,48px);line-height:1.08;font-weight:800;animation:wlf .8s .7s both}
+.wl-p{margin:14px auto 0;font-size:clamp(15px,4.2vw,19px);line-height:1.45;opacity:.92;max-width:440px;animation:wlf .8s .95s both}
+.wl-pk{display:inline-block;margin-top:20px;padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.18);font-size:clamp(12px,3.4vw,15px);font-weight:600;animation:wlf .8s 1.2s both}
+.wl-bar{margin:26px auto 0;width:min(70%,260px);height:4px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden;animation:wlf .5s 1.3s both}.wl-bar i{display:block;height:100%;background:#fff;width:0;animation:wlb 3.6s 1.3s linear forwards}
+@keyframes wlb{to{width:100%}}.wl-tap{margin-top:10px;font-size:13px;opacity:.7;animation:wlf .5s 1.6s both}
+@keyframes wlf{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wl-rot,.wl-wind path,.wl-bar i{animation:none}.wl-t,.wl-hi,.wl-h,.wl-p,.wl-pk,.wl-bar,.wl-tap{animation:none}}
+</style>
+<script>(function(){var w=document.getElementById("welcome");if(!w)return;
+try{if(sessionStorage.getItem("wl-com")){w.remove();return}sessionStorage.setItem("wl-com","1")}catch(e){}
+try{var n=localStorage.getItem("tecnico")||localStorage.getItem("svc-name")||"";if(n)document.getElementById("wl-hi").textContent="¡Bienvenido, "+n.replace(/[<>&"]/g,"")+"!"}catch(e){}
+var done=false;function close(){if(done)return;done=true;w.classList.add("out");setTimeout(function(){w.remove()},700)}
+w.addEventListener("click",close);w.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key==="Escape"||e.key===" ")close()});
+setTimeout(close,5200);})();</script>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
