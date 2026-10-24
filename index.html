@@ -226,6 +226,11 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .ad{text-transform:none}.ad::first-letter{text-transform:uppercase}.r4{min-height:215px}
 @media (max-width:640px){.hw:not(.hs){visibility:hidden}.wcols .col:not(.hs) b,.wcols em{visibility:hidden}.hl{font-size:8.5px}}
 @media print{.top,#banner,.tabs,#adm,.acta-form,.btn,.toast{display:none!important}body{padding:0;max-width:none}.card{border:0}}
+.mapbox{overflow:auto;max-height:78vh;border-radius:12px;border:1px solid var(--bd);background:#2f7a55;-webkit-overflow-scrolling:touch;margin-top:8px}
+.mapkpi{display:flex;gap:10px;flex-wrap:wrap}.mapkpi>div{flex:1;min-width:110px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:8px 10px}.mapkpi b{display:block;font-size:24px;line-height:1.15}.mapkpi small{font-size:14px}.mapkpi span{font-size:12px;color:var(--mu)}
+.mapbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0 0}.mapbar .btn{padding:7px 11px}
+.mplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:10px}.mprow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:9px 10px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx);font:inherit;cursor:pointer;text-align:left}.mprow span{margin-left:auto;font-size:13px;color:var(--mu)}.mprow small{flex-basis:100%;color:var(--mu);font-size:11px}.mprow .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mw:focus-visible{outline:none}.mw:focus-visible rect[fill=transparent]{stroke:#fff;stroke-width:3}
 </style></head><body>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
@@ -695,6 +700,104 @@ function wtgHero(w){
  const order=Array.from({length:NW},(_,i)=>i+1).sort((a,b)=>wp(b)-wp(a)||a-b),rank=order.indexOf(w)+1,avg=tot()/(NW*NS)*100;
  return `<div class="bn" style="margin-bottom:12px"><div class="tile s4 r1" style="cursor:default"><div class="tt"><span>WTG ${pad(w)} · avance</span></div><div class="ctr row2">${donut([[d-obs<0?d:d,"var(--ok)"],[obs,"var(--nt)"],[NS-d-obs,"var(--pe)"]],Math.round(p)+"%","completo",118)}<div class="lg"><span><i style="background:var(--ok)"></i>Completos ${d}</span><span><i style="background:var(--nt)"></i>Con observación ${obs}</span><span><i style="background:var(--pe)"></i>Pendientes ${NS-d-obs}</span></div></div></div>
  <div class="tile s8 r1" style="cursor:default"><div class="tt"><span>Resumen de la WTG</span></div><div class="kq" style="grid-template-columns:repeat(4,1fr)"><div><b style="color:var(--g1)">#${rank}</b><span>de ${NW} por avance</span></div><div><b style="color:${pz?"var(--nt)":"var(--ok)"}">${pz}</b><span>piezas sin reponer</span></div><div><b>${ac.length}</b><span>registros de acta</span></div><div><b style="color:${dn?"var(--er)":"var(--ok)"}">${dn}</b><span>daños reportados</span></div></div><div class="row" style="margin:10px 0 0"><span class="n" style="width:auto">vs. parque</span>${bar(p)}<span class="p" style="width:auto">${Math.round(p)}% / ${Math.round(avg)}%</span></div></div></div>`}
+
+/* ---------- Mapa del parque (verde = RUN tildado · gris = SIN COMUNICACION ET tildado · naranja = en comisionado) ---------- */
+const normN=x=>String(x).normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().trim();
+const iRun=()=>S.findIndex(x=>normN(x)==="RUN"),iSin=()=>S.findIndex(x=>normN(x).startsWith("SIN COMUNICACION"));
+const wtgSt=w=>{const a=iSin(),r=iRun();if(a>=0&&done(K(w,a+1)))return "sincom";if(r>=0&&done(K(w,r+1)))return "marcha";return "comis"};
+const ST={marcha:["#22c55e","En marcha"],sincom:["#94a3b8","Sin comunicación ET"],comis:["#f97316","En comisionado"]};
+const stCount=k=>{let n=0;for(let w=1;w<=NW;w++)if(wtgSt(w)===k)n++;return n};
+const pendOf=w=>{const a=iSin();return S.map((n,i)=>[n,i]).filter(([n,i])=>i!==a&&!done(K(w,i+1))).map(x=>x[0])};
+const MAPW=2000,MAPH=1130;
+const MPOS={1:[165,392],2:[275,368],3:[385,338],4:[487,320],5:[588,296],6:[688,276],7:[187,726],8:[318,687],9:[440,654],10:[550,619],11:[680,579],12:[838,529],13:[938,501],14:[1062,459],15:[1175,419],16:[1290,397],17:[1397,352],18:[1580,292],19:[488,972],20:[580,972],21:[680,972],22:[790,972],23:[890,969],24:[985,969],25:[1083,966],26:[1185,964],27:[1300,962],28:[1397,962],29:[1497,962]};
+const MAPC="#2f7a55";let MZ=window.innerWidth<700?3.2:1,MPEND=true;try{MPEND=localStorage.getItem("mapPend")!=="0"}catch(e){}
+function mapSvg(){
+  const n=WX?wxNow():null,v=n?n.v:null,to=n?(n.d+180)%360:0,lv=n?wxLvl(n.v,n.g,n.code):0,calm=v==null||v<3||v>=25;
+  const dur=calm?0:Math.max(1.6,60/Math.min(14,v*1.3)),reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const WC=lv==2?'#ef4444':lv==1?'#f59e0b':'#e2e8f0';
+  const line=a=>'M'+a.map(w=>MPOS[w].join(' ')).join(' L');
+  const rowA=[1,2,3,4,5,6],rowB=[7,8,9,10,11,12,13,14,15,16,17,18],rowC=[19,20,21,22,23,24,25,26,27,28,29];
+  const water='fill="#cfe9dc" fill-opacity=".85"';
+  let g=`<svg id="mapsvg" viewBox="0 -270 ${MAPW} ${MAPH+270}" style="width:${MZ*100}%;display:block" role="img" aria-label="Mapa del parque con las 29 WTG">
+  <rect y="-270" width="${MAPW}" height="${MAPH+270}" fill="${MAPC}"/>
+  <path d="M0 -270H${MAPW}V${MAPH}H0Z" fill="url(#mgl)"/>
+  <defs><radialGradient id="mgl" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient>
+  <filter id="msh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".45"/></filter></defs>
+  <g ${water}><path d="M545 80 L585 76 L695 170 L645 188 L600 158 L562 142 L525 124Z"/><path d="M610 130 L665 150 L705 300 L785 440 L860 556 L818 562 L742 472 L662 352 L618 240Z"/><path d="M318 205 L340 204 L550 618 L522 652 L440 562 L372 402Z"/><path d="M85 412 L150 380 L298 722 L250 730 L165 562Z"/>
+  <path d="M1240 160 Q1300 150 1330 175 Q1390 165 1470 180 Q1550 215 1535 280 Q1500 335 1440 332 Q1400 300 1350 300 Q1290 270 1255 215Z"/><path d="M876 752 Q930 725 1010 735 Q1100 745 1130 790 Q1090 810 1010 800 Q930 795 885 770Z"/><path d="M1352 862 Q1380 826 1430 826 Q1470 850 1440 886 Q1400 915 1370 905Z"/><ellipse cx="742" cy="942" rx="16" ry="22"/></g>
+  <g fill="none" stroke-linecap="round"><path d="${line(rowB)}" stroke="#14301f" stroke-opacity=".55" stroke-width="12"/><path d="M95 774 L1640 308" stroke="#e9f5ee" stroke-opacity=".28" stroke-width="5" stroke-dasharray="26 16"/><path d="M440 980 L1540 968" stroke="#e9f5ee" stroke-opacity=".28" stroke-width="5" stroke-dasharray="26 16"/>
+  <path d="${line(rowA)}" stroke="#e9f5ee" stroke-opacity=".75" stroke-width="3"/><path d="${line(rowB)}" stroke="#e9f5ee" stroke-opacity=".75" stroke-width="3"/><path d="${line(rowC)}" stroke="#e9f5ee" stroke-opacity=".75" stroke-width="3"/>
+  <path d="M1015 490 L830 245 L690 270" stroke="#e9f5ee" stroke-opacity=".55" stroke-width="3" stroke-dasharray="4 7"/><path d="M1015 490 Q1100 640 1135 770 T1160 968" stroke="#e9f5ee" stroke-opacity=".6" stroke-width="3" stroke-dasharray="4 7"/></g>
+  <g fill="#e9f5ee" fill-opacity=".8" font-size="22" font-family="system-ui,sans-serif" font-weight="600"><text x="238" y="272">C8 · Circuito 8</text><text x="552" y="214">C9 · Circuito 9</text><text x="284" y="600">C7 · Circuito 7</text><text x="646" y="492">C6 · Circuito 6</text><text x="1002" y="386">C5 · Circuito 5</text><text x="1372" y="262">C10 · Circuito 10</text><text x="566" y="892">C4 · Circuito 4</text><text x="894" y="888">C3 · Circuito 3</text><text x="1170" y="888">C2 · Circuito 2</text><text x="1424" y="888">C1 · Circuito 1</text>
+  <text x="1110" y="502" font-size="19">ET 33/132 kV</text></g>
+  <rect x="1002" y="476" width="26" height="22" fill="#0f1720" stroke="#e9f5ee" stroke-width="2" rx="3"/>
+  <g transform="translate(1880 -120)"><circle r="48" fill="#0f1720" fill-opacity=".55" stroke="#e9f5ee" stroke-width="3"/><path d="M0 -34 L12 8 L0 0 L-12 8Z" fill="#e9f5ee"/><text y="30" text-anchor="middle" fill="#e9f5ee" font-size="22" font-weight="700" font-family="system-ui,sans-serif">N</text></g>
+  ${mapPanel()}
+  <g fill="#e9f5ee" font-family="system-ui,sans-serif"><text x="50" y="-170" font-size="72" font-weight="800">Olavarría</text><text x="54" y="-118" font-size="36" font-weight="600" fill-opacity=".9">PE Olavarría · 29 WTG × 6,4 MW</text></g>`;
+  const cut=t=>t.length>12?t.slice(0,11)+"…":t;
+  for(let i=1;i<=NW;i++){
+    const w=pad(i),[x,y]=MPOS[i],st=wtgSt(i),ok=st==="marcha",col=ST[st][0],pn=pendOf(i),hy=y-50;
+    const bl=a=>`<path d="M${x} ${hy} L${x-3.4} ${hy-9} L${x-1.6} ${hy-36} Q${x} ${hy-40} ${x+1.6} ${hy-36} L${x+3.4} ${hy-9}Z" transform="rotate(${a} ${x} ${hy})" fill="#f8fafc" stroke="${col}" stroke-width="1.6"/>`;
+    const spin=ok&&dur&&!reduce?`<animateTransform attributeName="transform" type="rotate" from="0 ${x} ${hy}" to="360 ${x} ${hy}" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/>`:"";
+    const names=MPEND?pn.slice(0,3):[],more=MPEND?Math.max(0,pn.length-3):0,top=v!=null?52:26,lines=pn.length?(MPEND?names.length+(more?1:0):1):1,bh=top+10+lines*21;
+    let pt="";const py=y+(v!=null?84:58);
+    if(!pn.length)pt=`<text x="${x}" y="${py}" text-anchor="middle" fill="#86efac" font-size="16" font-weight="700" font-family="system-ui,sans-serif">✓ al día</text>`;
+    else if(!MPEND)pt=`<text x="${x}" y="${py}" text-anchor="middle" fill="#fbbf24" font-size="17" font-weight="700" font-family="system-ui,sans-serif">⏳ ${pn.length} pend.</text>`;
+    else pt=names.map((t,k)=>`<text x="${x}" y="${py+k*21}" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="700" font-family="system-ui,sans-serif">${esc(cut(t))}</text>`).join("")+(more?`<text x="${x}" y="${py+names.length*21}" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="800" font-family="system-ui,sans-serif">+${more} más</text>`:"");
+    g+=`<g class="mw" onclick="mapWtg(${i})" onkeydown="if(event.key==='Enter')mapWtg(${i})" tabindex="0" role="button" aria-label="WTG ${w}: ${ST[st][1]}, ${pn.length} tareas pendientes" style="cursor:pointer">
+     <rect x="${x-50}" y="${hy-48}" width="100" height="${y+bh+12-hy+48}" fill="transparent"/>
+     <path d="M${x-3.4} ${y} L${x-1.8} ${hy} L${x+1.8} ${hy} L${x+3.4} ${y}Z" fill="#f8fafc" stroke="${col}" stroke-width="1.6"/>
+     <g>${bl(0)}${bl(120)}${bl(240)}${spin}</g><circle cx="${x}" cy="${hy}" r="6.5" fill="${col}" stroke="#fff" stroke-width="2"/>
+     <g filter="url(#msh)"><rect x="${x-46}" y="${y+10}" width="92" height="${bh}" rx="9" fill="#0f1720" fill-opacity=".92" stroke="${col}" stroke-width="3"/></g>
+     <text x="${x}" y="${y+34}" text-anchor="middle" fill="#fff" font-size="21" font-weight="800" font-family="system-ui,sans-serif">WTG ${w}</text>
+     ${v!=null?`<g transform="translate(${x-31} ${y+54})"><g transform="rotate(${to})"><path d="M0 -12 L8 5 L0 1 L-8 5Z" fill="${WC}" stroke="#0f1720" stroke-width="1"/></g></g><text x="${x+16}" y="${y+60}" text-anchor="middle" fill="${WC}" font-size="19" font-weight="700" font-family="system-ui,sans-serif">${v.toFixed(1)}<tspan font-size="13" font-weight="500"> m/s</tspan></text>`:""}${pt}</g>`;
+  }
+  return g+`</svg>`;
+}
+function wxAlerts(){
+  if(!WX)return [['#cbd5e1','Sin datos de pronóstico']];
+  const h=WX.hourly,i0=wxNowIdx(),N=Math.min(24,h.time.length-i0),out=[],hh=i=>h.time[i].slice(11,16);
+  let c0=-1,c1=-1,s0=-1,st=false,mx=0;
+  for(let k=0;k<N;k++){const i=i0+k,e=Math.max(h.wind_speed_100m[i]||0,h.wind_gusts_10m[i]||0);mx=Math.max(mx,e);
+    if(e>=WX_STOP&&s0<0)s0=i;else if(e>=WX_CAUT&&c0<0)c0=i;if(e>=WX_CAUT)c1=i;if(h.weather_code[i]>=95)st=true}
+  if(s0>=0)out.push(['#f87171',`⛔ Viento ≥${WX_STOP} m/s desde ${hh(s0)}: no trepar`]);
+  if(c0>=0)out.push(['#fbbf24',`⚠️ Precaución ≥${WX_CAUT} m/s ${hh(c0)}–${hh(c1)}`]);
+  if(st)out.push(['#f87171','⛈ Tormenta prevista (24 h)']);
+  if(!out.length)out.push(['#86efac',`✅ Sin alertas 24 h (máx ${mx.toFixed(1)} m/s)`]);
+  return out.slice(0,3);
+}
+function mapPanel(){
+  const X=1400,Y=-250,Wd=430,n=WX?wxNow():null;
+  let g=`<g font-family="system-ui,sans-serif"><rect x="${X}" y="${Y}" width="${Wd}" height="352" rx="16" fill="#0f1720" fill-opacity=".9" stroke="#e9f5ee" stroke-opacity=".45" stroke-width="2"/>
+  <text x="${X+18}" y="${Y+34}" fill="#fff" font-size="23" font-weight="800">Pronóstico · viento a 100 m</text>`;
+  if(n){
+    g+=`<text x="${X+18}" y="${Y+68}" fill="#fff" font-size="22" font-weight="700">Ahora ${n.v.toFixed(1)} m/s · ráfagas ${n.g.toFixed(1)}</text>
+    <g transform="translate(${X+34} ${Y+104})"><g transform="rotate(${(n.d+180)%360})"><path d="M0 -20 L12 10 L0 3 L-12 10Z" fill="#e2e8f0"/></g></g>
+    <text x="${X+62}" y="${Y+100}" fill="#fff" font-size="21" font-weight="700">${Math.round(n.d)}° · del ${dirName(n.d)}</text><text x="${X+62}" y="${Y+124}" fill="#cbd5e1" font-size="17">va hacia ${Math.round((n.d+180)%360)}° (${dirName(n.d+180)})</text>`;
+    const h=WX.hourly,i0=wxNowIdx();
+    for(let k=0;k<4;k++){const i=i0+(k+1)*3;if(i>=h.time.length)break;const cx=X+18+k*100+46,e=h.wind_speed_100m[i],lvl=wxLvl(e,h.wind_gusts_10m[i],h.weather_code[i]);
+      g+=`<rect x="${cx-46}" y="${Y+138}" width="92" height="104" rx="10" fill="#fff" fill-opacity=".07"/><text x="${cx}" y="${Y+162}" text-anchor="middle" fill="#cbd5e1" font-size="17" font-weight="600">${h.time[i].slice(11,16)}</text><text x="${cx}" y="${Y+194}" text-anchor="middle" font-size="26">${wxIcon(h.weather_code[i])}</text><text x="${cx}" y="${Y+220}" text-anchor="middle" fill="${lvl==2?"#f87171":lvl==1?"#fbbf24":"#fff"}" font-size="20" font-weight="800">${e.toFixed(1)}<tspan font-size="12" font-weight="500"> m/s</tspan></text><text x="${cx}" y="${Y+238}" text-anchor="middle" fill="#cbd5e1" font-size="15">${Math.round(h.wind_direction_100m[i])}°</text>`}
+  }else g+=`<text x="${X+18}" y="${Y+100}" fill="#cbd5e1" font-size="20">Sin datos de viento</text>`;
+  wxAlerts().forEach(([c,t],k)=>g+=`<text x="${X+18}" y="${Y+266+k*24}" fill="${c}" font-size="18" font-weight="700">${t}</text>`);
+  g+=`<g onclick="mapPend()" role="button" tabindex="0" style="cursor:pointer"><rect x="${X+14}" y="${Y+304}" width="402" height="38" rx="10" fill="#334155"/><text x="${X+215}" y="${Y+329}" text-anchor="middle" fill="#fff" font-size="17" font-weight="800">${MPEND?"▾ Minimizar pendientes":"▸ Mostrar pendientes"}</text></g>`;
+  return g+"</g>";
+}
+window.mapPend=()=>{MPEND=!MPEND;try{localStorage.setItem("mapPend",MPEND?"1":"0")}catch(e){}render(true)};
+window.mapZ=d=>{const zs=[1,1.6,2.4,3.2,4.4];let i=zs.findIndex(z=>z>=MZ-.01);if(i<0)i=zs.length-1;i=d===0?0:Math.max(0,Math.min(zs.length-1,i+d));MZ=zs[i];render(true)};
+window.mapWtg=i=>{const w=pad(i),st=wtgSt(i),pn=pendOf(i),n=WX?wxNow():null;
+ $("mub").innerHTML=`<h2>WTG ${w} <span class="lv" style="background:${ST[st][0]};color:${st==="sincom"?"#0f1720":"#fff"}">${ST[st][1]}</span></h2>${n?`<div class="sub">Viento ahora: <b>${n.v.toFixed(1)} m/s</b> del ${dirName(n.d)} (${Math.round(n.d)}°) · ráfagas ${n.g.toFixed(1)} m/s</div>`:""}
+  <div class="sub" style="margin-top:10px"><b>${pn.length?`Tareas pendientes (${pn.length})`:"Sin tareas pendientes 🎉"}</b></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">${pn.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="$m();goWtg(${i})">Abrir ficha de la WTG</button><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex"};
+function vMapa(){
+ const n=WX?wxNow():null,lv=n?wxLvl(n.v,n.g,n.code):0,nm=stCount("marcha"),ns=stCount("sincom"),nc=stCount("comis");
+ let tp=0;const rank=[];for(let w=1;w<=NW;w++){const p=pendOf(w);tp+=p.length;if(p.length)rank.push([w,p])}rank.sort((a,b)=>a[1].length-b[1].length||a[0]-b[0]);
+ const zs=[1,1.6,2.4,3.2,4.4],zi=Math.max(0,zs.findIndex(z=>z>=MZ-.01));
+ const miss=(iRun()<0?"No existe el sistema «RUN»: ":"")+(iSin()<0?"No existe el sistema «SIN COMUNICACION ET»":"");
+ return `<div class="card"><div class="mapkpi"><div><b style="color:#16a34a">${nm}</b><span>en marcha (RUN)</span></div><div><b style="color:#64748b">${ns}</b><span>sin comunicación ET</span></div><div><b style="color:#d97706">${nc}</b><span>en comisionado</span></div><div><b>${tp}</b><span>tareas pendientes</span></div>${n?`<div><b style="color:${lv==2?"var(--er)":lv==1?"#d97706":"inherit"}">${n.v.toFixed(1)}<small> m/s</small></b><span>viento a 100 m · ${Math.round(n.d)}° (${dirName(n.d)}) · ráfagas ${n.g.toFixed(1)}</span></div>`:`<div><b>—</b><span>viento: sin datos</span></div>`}</div>
+ ${miss?`<div class="sub" style="color:var(--nt);margin-top:8px">⚠️ ${miss}.</div>`:""}
+ <div class="mapbar"><span class="sub" style="margin:0">Verde: RUN tildado · Gris: SIN COMUNICACION ET tildado · Naranja: el resto</span><span style="flex:1"></span><button class="btn" onclick="mapPend()">${MPEND?"▾ Minimizar pendientes":"▸ Mostrar pendientes"}</button><button class="btn" onclick="mapZ(-1)" ${zi<=0?"disabled":""} aria-label="Alejar">−</button><button class="btn" onclick="mapZ(0)">Ajustar</button><button class="btn" onclick="mapZ(1)" ${zi>=zs.length-1?"disabled":""} aria-label="Acercar">＋</button><button class="btn" onclick="loadWx()">Actualizar clima</button></div>
+ <div class="mapbox">${mapSvg()}</div>${WX?"":`<div class="sub">Sin datos de viento (sin conexión o bloqueado en esta red).</div>`}</div>
+ <div class="card"><details ${rank.length&&rank.length<=12?"open":""}><summary style="cursor:pointer;font-weight:700">Tareas pendientes por WTG (${rank.length})</summary>${rank.length?`<div class="mplist">${rank.map(([w,p])=>`<button class="mprow" onclick="mapWtg(${w})"><i class="dot" style="background:${ST[wtgSt(w)][0]}"></i><b>WTG ${pad(w)}</b><span>${p.length} pend.</span><small>${esc(p.slice(0,3).join(", "))}${p.length>3?" +"+(p.length-3):""}</small></button>`).join("")}</div>`:`<div class="sub" style="margin-top:8px">Todo completo 🎉</div>`}</details></div>`}
 function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"></s>Completo</span><span><s style="background:var(--pe)"></s>Pendiente</span><span><s style="border:2px solid var(--nt)"></s>Con observación</span><span><s style="background:var(--nt);border-radius:50%"></s>Guardando…</span></div><div class="map"><div class="g" style="grid-template-columns:38px repeat(${NS},var(--cs))"><div class="h"></div>`;
  S.forEach((n,i)=>h+=`<div class="h ${mapS==i+1?"on":""}" onclick="setMapS(${i+1})" title="Tocá para ver en qué WTG falta">${n}</div>`);
  for(let w=1;w<=NW;w++){const pw=Math.round(wp(w)/NS*100);h+=`<div class="l" style="box-shadow:inset 4px 0 0 ${col(pw)}" title="WTG ${pad(w)} · ${pw}%">${pad(w)}<small>${pw}%</small></div>`;
@@ -1144,9 +1247,10 @@ window.render=function(keep){
   :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
- $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Mapa"],["wtg","🌀 WTG"],["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
- const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null;
- if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="wtg"?vWtg():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
+ $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Pizarra"],["mapa","🗺️ Mapa"],["wtg","🌀 WTG"],["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
+ if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  paintDetail();
  const lb=+(localStorage.getItem("respaldo")||0),dias=lb?Math.floor((Date.now()-lb)/864e5):null;
