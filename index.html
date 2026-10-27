@@ -341,8 +341,11 @@ import {firebaseConfig} from "./firebase-config.js";
 
 const BASE=["PITCH","QM1","ACUMUL","LOAD SEN","SWITCHGEAR","TRAFO","YAW MOTOR","SOFTWARE","RtoP","ENERG","COOLAN","HYD+GBX","ODM","CISCO 2/2","CMS","AV. L","CALIB BLD","T. LOAD","HT FREQ","1ET KILO","BATERÍA TEST","WIND SENSOR","MUESTRAS DE ACEITE"];
 let S=[...BASE],NS=S.length;
+let NAMES=[...BASE],SID=BASE.map((_,i)=>i+1),DEL=new Set(),DELEV=[];   // NAMES: por id real · SID: posición visible → id real · DEL: ids eliminados
 const NW=29,PROJ=["projects","parque"];
-const K=(w,s)=>String(w).padStart(2,"0")+"-"+s;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
+const KR=(w,id)=>String(w).padStart(2,"0")+"-"+id;   // id del documento: "05-1" = WTG 05, sistema 1 (PITCH)
+const K=(w,s)=>KR(w,SID[s-1]??s);   // s = posición entre las tareas visibles (las eliminadas no cuentan)
+const nm=id=>NAMES[id-1]||"", vis=id=>SID.includes(id);
 const pad=n=>String(n).padStart(2,"0");
 const $=id=>document.getElementById(id);
 try{const t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t}catch(e){}
@@ -352,6 +355,7 @@ window.toggleTheme=()=>{const n=isDark()?"light":"dark";document.documentElement
 /* ---------- Datos originales de la pizarra (se cargan UNA sola vez en la nube) ---------- */
 function seedData(){
  const D={},N={};
+ const K=KR;
  [2,3,4,5,6,7,8,11,12,13,14,15,16].forEach(s=>D[K(1,s)]=1);
  for(let w=7;w<=18;w++)for(let s=1;s<=20;s++)D[K(w,s)]=1;
  [15,16,17].forEach(w=>delete D[K(w,7)]);
@@ -374,7 +378,7 @@ let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:""};
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
 const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
 const sp=s=>{let n=0;for(let w=1;w<=NW;w++)n+=done(K(w,s))?1:0;return n};
-const tot=()=>{let n=0;for(const k in T)if(T[k].done)n++;return n};
+const tot=()=>{let n=0;for(let w=1;w<=NW;w++)n+=wp(w);return n};
 const col=p=>p>=100?"var(--ok)":p>=70?"#84cc16":p>=40?"#f59e0b":p>0?"#f97316":"var(--pe)";
 const canEdit=()=>ready&&uid&&NAME;
 const fmt=d=>d?d.toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"…";
@@ -422,15 +426,26 @@ function start(){
  /* Tareas (sistemas) extra agregadas por los técnicos: ids 23, 24, ... */
  onSnapshot(sisCol,snap=>{
   const ex=snap.docs.map(d=>({n:+d.id,name:String(d.data().name||"")})).filter(x=>x.n>=23);
-  S=[...BASE];ex.forEach(x=>{S[x.n-1]=x.name});
-  for(let i=0;i<S.length;i++)if(!S[i])S[i]="TAREA "+(i+1);
-  NS=S.length;render(true)
+  const all=[...BASE];ex.forEach(x=>{all[x.n-1]=x.name});
+  for(let i=0;i<all.length;i++)if(!all[i])all[i]="TAREA "+(i+1);
+  NAMES=all;applyDel();render(true)
+ },()=>{});
+ /* Tareas eliminadas: registro en meta (solo se agrega). Vale el último evento de cada tarea: "borrada" o "restaurada". */
+ onSnapshot(query(collection(db,...PROJ,"meta"),where("tipo","in",["borrada","restaurada"])),{includeMetadataChanges:true},snap=>{
+  DELEV=snap.docs.map(d=>{const x=d.data({serverTimestamps:"estimate"});return {sid:+x.sid,tipo:x.tipo,t:x.at&&x.at.toMillis?x.at.toMillis():Date.now(),byName:x.byName||"",at:x.at}});
+  applyDel();render(true)
  },()=>{});
  onSnapshot(query(piezasCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   P=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
  seedPiezas();
 }
+
+function applyDel(){
+ const last={};DELEV.slice().sort((a,b)=>a.t-b.t).forEach(e=>{last[e.sid]=e});
+ DEL=new Set(Object.values(last).filter(e=>e.tipo==="borrada").map(e=>e.sid));
+ SID=NAMES.map((_,i)=>i+1).filter(id=>!DEL.has(id));S=SID.map(nm);NS=S.length;
+ if(mapS>NS)mapS=0}
 
 /* Carga inicial: una sola vez. La transacción verifica meta/init, así que abrir la app nunca reinicia nada. */
 async function seed(){
@@ -439,7 +454,7 @@ async function seed(){
   await runTransaction(db,async tx=>{
    const init=doc(db,...PROJ,"meta","init");
    if((await tx.get(init)).exists())return;
-   for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=K(w,s);
+   for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=KR(w,s);
     tx.set(doc(tasksCol,k),{w,s,sys:BASE[s-1],done:!!D[k],note:N[k]||"",by:null,byName:"Carga inicial (pizarra)",at:serverTimestamp()})}
    tx.set(init,{at:serverTimestamp(),by:uid});
   });
@@ -450,9 +465,9 @@ async function seed(){
 /* ---------- Escritura: una tarea por vez, con historial, sin botones de guardar ---------- */
 function setTask(w,s,target,prevOverride,noteArg){
  if(!canEdit())return;
- const k=K(w,s),prev=prevOverride??done(k),b=writeBatch(db),hn=noteArg!==undefined;
- b.set(doc(tasksCol,k),{w,s,done:target,...(hn?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()},{merge:true});
- b.set(doc(histCol),{w,s,sys:S[s-1],done:target,prev,...(hn&&noteArg?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()});
+ const k=K(w,s),sid=SID[s-1],prev=prevOverride??done(k),b=writeBatch(db),hn=noteArg!==undefined;
+ b.set(doc(tasksCol,k),{w,s:sid,done:target,...(hn?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()},{merge:true});
+ b.set(doc(histCol),{w,s:sid,sys:S[s-1],done:target,prev,...(hn&&noteArg?{note:noteArg}:{}),by:uid,byName:NAME,at:serverTimestamp()});
  // Con persistencia offline el commit se resuelve cuando el servidor confirma; mientras tanto la celda muestra "pendiente".
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el cambio NO se guardó":"❌ El cambio no se guardó: "+e.message));
 }
@@ -461,17 +476,17 @@ window.tg=(w,s)=>{if(!canEdit()){if(!NAME)openUser();return}
 /* Segundo toque sobre un casillero verde → observación con nota. Sobre una observación → editar / completar / quitar. */
 /* Toque sobre un casillero verde → preguntar: volver a sin realizar o agregar observación. */
 window.openAsk=(w,s)=>{
- $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">La tarea está completa. ¿Qué querés hacer?</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="askUndo(${w},${s})">↩ Volver a sin realizar</button><button class="btn" onclick="openObs(${w},${s},true)">✏️ Agregar una observación</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">La tarea está completa. ¿Qué querés hacer?</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="askUndo(${w},${s})">↩ Volver a sin realizar</button><button class="btn" onclick="openObs(${w},${s},true)">✏️ Agregar una observación</button><button class="btn dg" onclick="askDelTask(${SID[s-1]})">🗑 Eliminar tarea</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
  $("mu").style.display="flex"};
 window.askUndo=(w,s)=>{$m();setTask(w,s,false,undefined,"")};
 window.openObs=(w,s,force)=>{const k=K(w,s),cur=note(k)||"",ed=!done(k)&&!!cur;
  if(!force&&done(k)&&!cur){openAsk(w,s);return}
- $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">${ed?"Esta tarea tiene una observación. Podés editarla, marcarla como completa o quitarla.":"La tarea está completa. Si hay algo para observar, escribilo (pasa a “con observación”)."}</div><textarea id="obt" maxlength="200" rows="3" placeholder="Ej: falta torque en bridas, pendiente repuesto…" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(cur)}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="obsSave(${w},${s})">Guardar observación</button>${ed?`<button class="btn" onclick="obsDone(${w},${s})">✓ Marcar completo</button><button class="btn" onclick="obsClear(${w},${s})">Quitar observación (queda pendiente)</button>`:""}<button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(S[s-1])}</h2><div class="sub">${ed?"Esta tarea tiene una observación. Podés editarla, marcarla como completa o quitarla.":"La tarea está completa. Si hay algo para observar, escribilo (pasa a “con observación”)."}</div><textarea id="obt" maxlength="200" rows="3" placeholder="Ej: falta torque en bridas, pendiente repuesto…" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(cur)}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="obsSave(${w},${s})">Guardar observación</button>${ed?`<button class="btn" onclick="obsDone(${w},${s})">✓ Marcar completo</button><button class="btn" onclick="obsClear(${w},${s})">Quitar observación (queda pendiente)</button>`:""}<button class="btn dg" onclick="askDelTask(${SID[s-1]})">🗑 Eliminar tarea</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
  $("mu").style.display="flex";setTimeout(()=>{const t=$("obt");if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}},60)};
 window.obsSave=(w,s)=>{const v=($("obt").value||"").trim();if(!v){toast("Escribí la observación");return}$m();setTask(w,s,false,undefined,v)};
 window.obsDone=(w,s)=>{$m();setTask(w,s,true,undefined,"")};
 window.obsClear=(w,s)=>{$m();setTask(w,s,false,undefined,"")};
-window.revert=id=>{const h=H.find(x=>x.id===id);if(!h||!isAdmin)return;if(confirm(`¿Volver WTG ${pad(h.w)} · ${h.s>0&&S[h.s-1]?S[h.s-1]:h.sys} a "${h.prev?"completo":"pendiente"}"?`))setTask(h.w,h.s,h.prev)};
+window.revert=id=>{const h=H.find(x=>x.id===id);if(!h||!isAdmin)return;const ps=SID.indexOf(h.s)+1;if(!ps){toast("Esa tarea está eliminada. Restaurala primero.");return}if(confirm(`¿Volver WTG ${pad(h.w)} · ${nm(h.s)||h.sys} a "${h.prev?"completo":"pendiente"}"?`))setTask(h.w,ps,h.prev)};
 
 window.restoreAll=async()=>{
  if(!isAdmin||!confirm("⚠️ Esto vuelve TODAS las tareas a los datos originales de la pizarra. Queda registrado en el historial. ¿Continuar?"))return;
@@ -479,7 +494,7 @@ window.restoreAll=async()=>{
  try{
   const {D,N}=seedData();let b=writeBatch(db),n=0;
   const flush=async()=>{await b.commit();b=writeBatch(db);n=0};
-  for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=K(w,s);
+  for(let w=1;w<=NW;w++)for(let s=1;s<=BASE.length;s++){const k=KR(w,s);
    b.set(doc(tasksCol,k),{w,s,done:!!D[k],note:N[k]||"",by:uid,byName:NAME+" (restauración)",at:serverTimestamp()},{merge:true});
    if(++n>=100)await flush()}
   b.set(doc(histCol),{w:0,s:0,sys:"TODO",done:false,prev:false,restore:true,by:uid,byName:NAME,at:serverTimestamp()});
@@ -618,7 +633,7 @@ function recos(){
  return R}
 function novGroups(){ // últimos trabajos: tareas marcadas, agrupadas por técnico+WTG consecutivos
  const G=[];H.filter(h=>h.done&&!h.restore&&!h.nueva).forEach(h=>{const g=G[G.length-1];
-  if(g&&g.by===h.byName&&g.w===h.w&&G.length)g.n.push(S[h.s-1]||h.sys);else G.push({by:h.byName,w:h.w,n:[S[h.s-1]||h.sys],at:toD(h)||new Date()})});return G.slice(0,6)}
+  if(g&&g.by===h.byName&&g.w===h.w&&G.length)g.n.push(nm(h.s)||h.sys);else G.push({by:h.byName,w:h.w,n:[nm(h.s)||h.sys],at:toD(h)||new Date()})});return G.slice(0,6)}
 function cardsNov(){
  let h=fold("clima",wxMini(),wxCard(),true,true);
  const R=recos();
@@ -673,8 +688,8 @@ const toD=x=>x&&x.at&&x.at.toDate?x.at.toDate():null;
 const dias=d=>d?Math.max(0,Math.floor((Date.now()-d.getTime())/864e5)):0;
 function hoyStats(){
  const now=new Date(),by={},wt=new Set(),det={};let c=0,u=0;
- H.forEach(h=>{if(h.restore||h.nueva)return;const d=toD(h)||(h.pending?now:null);if(!d||d.toDateString()!==now.toDateString())return;
-  if(h.done){c++;by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;wt.add(h.w);(det[h.w]=det[h.w]||new Set()).add(S[h.s-1]||"Sistema "+h.s)}else u++});
+ H.forEach(h=>{if(h.restore||h.nueva||h.borrada||h.restaurada||!vis(h.s))return;const d=toD(h)||(h.pending?now:null);if(!d||d.toDateString()!==now.toDateString())return;
+  if(h.done){c++;by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;wt.add(h.w);(det[h.w]=det[h.w]||new Set()).add(nm(h.s)||"Sistema "+h.s)}else u++});
  return {c,u,by,det,wt:[...wt].sort((a,b)=>a-b)}}
 const faltan=w=>S.map((n,i)=>done(K(w,i+1))?null:n).filter(Boolean);
 window.setMi=v=>{MI=+v||0;try{localStorage.setItem("miwtg",String(MI))}catch(e){}render(true)};
@@ -928,7 +943,7 @@ function vMap(){let h=`<div class="legend"><span><s style="background:var(--ok)"
  if(mapS){const f=[];for(let w=1;w<=NW;w++)if(!done(K(w,mapS)))f.push(w);
   h=`<div class="card" style="padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><b>${esc(S[mapS-1])}: falta en ${f.length} de ${NW} WTG</b><button class="btn" onclick="setMapS(0)">✕</button></div>${f.length?`<div class="chips">${f.map(w=>`<button class="chip n" onclick="goWtg(${w})">WTG ${pad(w)}</button>`).join("")}</div>`:`<div style="color:var(--ok);font-weight:700">🎉 Completo en todas</div>`}</div>`+h}
  return h+`<div class="sub" style="margin-top:8px">Tocá el nombre de un sistema para ver en qué WTG falta. La barra de color a la izquierda de cada WTG indica su avance. Deslizá para ver todos los sistemas. Tocá un casillero pendiente para marcarlo completo (verde). Un segundo toque sobre el verde lo pasa a “con observación” y te deja escribir la nota. Se actualiza en todos los dispositivos.</div>`}
-function vWtg(){if(!sel&&matchMedia("(min-width:900px)").matches)sel=MI||1;let h=`<div class="md"><div class="mdl"><div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button></div><div class="wg">`;
+function vWtg(){if(!sel&&matchMedia("(min-width:900px)").matches)sel=MI||1;let h=`<div class="md"><div class="mdl"><div style="margin-bottom:10px"><button class="btn" onclick="openAddTask()">＋ Nueva tarea (para todas las WTG)</button> <button class="btn" onclick="openDelTasks()">🗑 Eliminar tarea</button></div><div class="wg">`;
  for(let w=1;w<=NW;w++){const p=Math.round(wp(w)/NS*100);
   h+=`<button class="w ${sel==w?"on":""}" onclick="setSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${wp(w)}/${NS}</span>${pp(w)?`<span style="display:block;color:var(--nt);font-weight:600">🔧 ${pp(w)} pieza${pp(w)>1?"s":""}</span>`:""}</button>`}
  h+=`</div></div><div class="mdr">`;
@@ -940,9 +955,9 @@ function vWtg(){if(!sel&&matchMedia("(min-width:900px)").matches)sel=MI||1;let h
 function vHist(){
  if(!H.length)return `<div class="card sub">Todavía no hay cambios registrados.</div>`;
  return histTop()+`<div class="card"><h2>Últimas modificaciones</h2>`+H.map(h=>{
-  const what=h.restore?"Restauró los datos originales":h.nueva?`Nueva tarea: ${esc(h.sys)}`:`WTG ${pad(h.w)} · ${esc(h.s>0&&S[h.s-1]?S[h.s-1]:h.sys)} → ${h.note?"observación: "+esc(h.note):h.done?"completo":"pendiente"}`;
+  const what=h.restore?"Restauró los datos originales":h.nueva?`Nueva tarea: ${esc(h.sys)}`:h.borrada?`🗑 Eliminó la tarea: ${esc(h.sys)}`:h.restaurada?`♻️ Restauró la tarea: ${esc(h.sys)}`:`WTG ${pad(h.w)} · ${esc(nm(h.s)||h.sys)} → ${h.note?"observación: "+esc(h.note):h.done?"completo":"pendiente"}`;
   const at=h.at&&h.at.toDate?h.at.toDate():null;
-  return `<div class="hi"><span class="dot" style="background:${h.restore?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore&&!h.nueva?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
+  return `<div class="hi"><span class="dot" style="background:${h.borrada?"var(--er)":h.restore||h.restaurada?"var(--nt)":h.done?"var(--ok)":"var(--mu)"}"></span><div><b>${what}</b><div class="t">${esc(h.byName||"—")} · ${fmt(at)}</div></div>${isAdmin&&!h.restore&&!h.nueva&&!h.borrada&&!h.restaurada?`<button class="btn" onclick="revert('${h.id}')">↩ Revertir</button>`:""}</div>`}).join("")+`</div>`}
 
 /* ---------- Acta de avances ---------- */
 const dayKey=d=>d?d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"…";
@@ -1148,15 +1163,15 @@ window.repDano=(ids,mode)=>reportFor(ids,mode).catch(e=>toast("❌ No se pudo ge
 function dayReportHtml(ds,forPrint){
  const day=new Date(ds+"T00:00:00"),same=d=>d&&d.toDateString()===day.toDateString(),fmt=d=>d?d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}):"";
  const isToday=same(new Date()),dl=day.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
- const ev=H.filter(h=>!h.restore&&!h.nueva&&h.done&&toD(h)).map(h=>({...h,d:toD(h)}));
- const seen={},todayEv=[];ev.filter(h=>same(h.d)&&done(K(h.w,h.s))).sort((a,b)=>b.d-a.d).forEach(h=>{const k=h.w+"-"+h.s;if(!seen[k]){seen[k]=1;todayEv.push(h)}});todayEv.sort((a,b)=>a.d-b.d);
+ const ev=H.filter(h=>!h.restore&&!h.nueva&&h.done&&vis(h.s)&&toD(h)).map(h=>({...h,d:toD(h)}));
+ const seen={},todayEv=[];ev.filter(h=>same(h.d)&&done(KR(h.w,h.s))).sort((a,b)=>b.d-a.d).forEach(h=>{const k=h.w+"-"+h.s;if(!seen[k]){seen[k]=1;todayEv.push(h)}});todayEv.sort((a,b)=>a.d-b.d);
  const by={},det={};todayEv.forEach(h=>{by[h.byName||"—"]=(by[h.byName||"—"]||0)+1;(det[h.w]=det[h.w]||[]).push(h)});
  const wts=Object.keys(det).map(Number).sort((a,b)=>a-b),t=tot(),tt=NW*NS,pc=t/tt*100;let full=0;for(let w=1;w<=NW;w++)if(wp(w)==NS)full++;
  const ntoday={};todayEv.forEach(h=>ntoday[h.w+"-"+h.s]=1);
  /* hitos */
  const hit=[],lastOf=f=>{let m=0;ev.forEach(h=>{if(f(h)&&h.d>m)m=h.d});return m?new Date(m):null};
  for(let w=1;w<=NW;w++)if(wp(w)==NS&&same(lastOf(h=>h.w===w)))hit.push(["🏆",`WTG ${pad(w)} llegó al 100% de los sistemas`]);
- S.forEach((n,i)=>{if(sp(i+1)==NW&&same(lastOf(h=>h.s===i+1)))hit.push(["✅",`${n} quedó completo en las ${NW} WTG`])});
+ S.forEach((n,i)=>{if(sp(i+1)==NW&&same(lastOf(h=>h.s===SID[i])))hit.push(["✅",`${n} quedó completo en las ${NW} WTG`])});
  wts.forEach(w=>{if(wp(w)>0&&!ev.some(h=>h.w===w&&h.d<day))hit.push(["🚀",`WTG ${pad(w)} inició su commissioning`])});
  if(isToday&&todayEv.length){const b=(t-todayEv.length)/tt*100;for(let m=Math.floor(pc/10)*10;m>b&&m>0;m-=10)if(m<=pc)hit.push(["📈",`El avance total superó el ${m}%`])}
  const cl=A.filter(a=>isDano(a)&&cerrado(a)&&same(a.cierreAt&&a.cierreAt.toDate?a.cierreAt.toDate():null));cl.forEach(a=>hit.push(["🔧",`Daño cerrado con evidencia: WTG ${esc(a.wtg||"")}${a.comp?" · "+esc(a.comp):""}`]));
@@ -1170,7 +1185,7 @@ function dayReportHtml(ds,forPrint){
  const mx=Math.max(1,...days.map(x=>x.c)),W=340,Hh=150,bw=34;
  const cols=`<svg width="100%" viewBox="0 0 ${W} ${Hh+30}">${days.map((x,i)=>{const h=Math.round(x.c/mx*Hh*.8),X=8+i*(bw+10),last=i===6;return `<rect x="${X}" y="${Hh-h+14}" width="${bw}" height="${h}" rx="4" fill="${last?BL:"#94a3b8"}"/><text x="${X+bw/2}" y="${Hh-h+10}" text-anchor="middle" font-size="11" fill="${TX}">${x.c}</text><text x="${X+bw/2}" y="${Hh+28}" text-anchor="middle" font-size="10" fill="#64748b">${x.d.toLocaleDateString("es-AR",{weekday:"short"}).slice(0,3)} ${x.d.getDate()}</text>`}).join("")}</svg>`;
  const hb=(rows,max)=>rows.map(([n,v,v2])=>`<div style="display:flex;align-items:center;gap:6px;margin:3px 0;font-size:10pt"><span style="width:118px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n)}</span><div style="flex:1;height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden;display:flex"><i style="width:${(v-(v2||0))/max*100}%;background:${GR}"></i><i style="width:${(v2||0)/max*100}%;background:${BL}"></i></div><b style="width:42px;text-align:right">${v}</b></div>`).join("");
- const sysRows=S.map((n,i)=>{const td=wts.filter(w=>ntoday[w+"-"+(i+1)]).length;return [n,sp(i+1),td]});
+ const sysRows=S.map((n,i)=>{const td=wts.filter(w=>ntoday[w+"-"+SID[i]]).length;return [n,sp(i+1),td]});
  const cell=11,gx=84,gy=18,hm=`<svg width="100%" viewBox="0 0 ${gx+NW*cell+4} ${gy+NS*cell+4}">${Array.from({length:NW},(_,w)=>(w+1)%5==1||w+1==NW?`<text x="${gx+w*cell+cell/2}" y="11" text-anchor="middle" font-size="8" fill="#64748b">${w+1}</text>`:"").join("")}${S.map((n,i)=>`<text x="${gx-4}" y="${gy+i*cell+9}" text-anchor="end" font-size="8" fill="${TX}">${esc(n.slice(0,16))}</text>`+Array.from({length:NW},(_,w)=>{const k=K(w+1,i+1),c=ntoday[(w+1)+"-"+(i+1)]?BL:done(k)?GR:note(k)?OR:MU;return `<rect x="${gx+w*cell}" y="${gy+i*cell}" width="${cell-1.5}" height="${cell-1.5}" rx="2" fill="${c}"/>`}).join("")).join("")}</svg>`;
  const pendW=[];for(let w=1;w<=NW;w++){const f=faltan(w);if(f.length)pendW.push([w,f])}pendW.sort((a,b)=>a[1].length-b[1].length||a[0]-b[0]);
  const sin=S.filter((n,i)=>sp(i+1)==0),pz=P.filter(x=>!x.repuesta),dab=A.filter(a=>isDano(a)&&!cerrado(a)),obs=[];
@@ -1184,7 +1199,7 @@ ${forPrint?"":`<div class="pb"><button onclick="print()">🖨 Imprimir / guardar
 <div class="k"><div><b style="color:${GR}">${todayEv.length}</b><span>tareas realizadas en el día</span></div><div><b>${wts.length}</b><span>WTG con avance</span></div><div><b>${full}/${NW}</b><span>WTG al 100%</span></div><div><b>${tt-t}</b><span>tareas pendientes</span></div><div><b style="color:${OR}">${dab.length}</b><span>daños abiertos</span></div></div>
 <div class="g2"><div style="text-align:center">${donutS(pc,190)}<div class="mu">Avance total del parque</div></div><div><h3>Tareas completadas · últimos 7 días</h3>${cols}</div></div>
 ${sec("🏆 Hitos del día",hit.length?hit.map(([i,x])=>`<div class="hit">${i} ${x}</div>`).join(""):`<p class="mu">Sin hitos destacados en esta fecha.</p>`)}
-${sec("🛠 Trabajos del día",wts.length?`<div class="g2"><div><table><tr><th>WTG</th><th>Sistemas completados</th><th>Quién / hora</th></tr>${wts.map(w=>`<tr><td><b>${pad(w)}</b></td><td>${det[w].map(h=>esc(S[h.s-1]||"Sistema "+h.s)).join(", ")}</td><td>${det[w].map(h=>esc(h.byName||"—")+" "+fmt(h.d)).join("<br>")}</td></tr>`).join("")}</table></div><div><h3>Por técnico</h3>${hb(Object.entries(by).sort((a,b)=>b[1]-a[1]),Math.max(1,...Object.values(by)))}</div></div>`:`<p class="mu">No se marcaron tareas como completas en esta fecha.</p>`)}
+${sec("🛠 Trabajos del día",wts.length?`<div class="g2"><div><table><tr><th>WTG</th><th>Sistemas completados</th><th>Quién / hora</th></tr>${wts.map(w=>`<tr><td><b>${pad(w)}</b></td><td>${det[w].map(h=>esc(nm(h.s)||"Sistema "+h.s)).join(", ")}</td><td>${det[w].map(h=>esc(h.byName||"—")+" "+fmt(h.d)).join("<br>")}</td></tr>`).join("")}</table></div><div><h3>Por técnico</h3>${hb(Object.entries(by).sort((a,b)=>b[1]-a[1]),Math.max(1,...Object.values(by)))}</div></div>`:`<p class="mu">No se marcaron tareas como completas en esta fecha.</p>`)}
 ${ac.length?`<h3>Registros de acta del día (${ac.length})</h3>${li(ac.map(a=>`<b>${fmt(toD(a))}</b> ${esc(a.byName||"")}${a.wtg?" · WTG "+esc(a.wtg):""}${isDano(a)?` · <b style="color:${OR}">⚠️ DAÑO${a.sev?" "+esc(a.sev):""}${cerrado(a)?" (cerrado)":" (abierto)"}</b>${a.comp?" · "+esc(a.comp):""}`:""}: ${esc(a.text).replace(/\n/g,"<br>")}`))}`:""}
 ${sec("📈 Avance por sistema",`<div class="g2"><div>${hb(sysRows,NW)}<div class="mu lg" style="font-size:9pt"><i style="background:${GR}"></i>antes<i style="background:${BL}"></i>del día · sobre ${NW} WTG</div></div></div>`)}
 ${sec("🗺 Mapa WTG × sistema",hm+`<div class="mu lg" style="font-size:9pt"><i style="background:${BL}"></i>completado en el día<i style="background:${GR}"></i>completado antes<i style="background:${OR}"></i>con observación<i style="background:${MU}"></i>pendiente</div>`)}
@@ -1297,12 +1312,38 @@ window.openAddTask=()=>{
 window.addTask=()=>{
  const name=$("nt").value.trim().replace(/\s+/g," ").toUpperCase();
  if(!name)return;
- if(S.some(x=>x.toUpperCase()===name)){toast("Esa tarea ya existe");return}
- const id=String(S.length+1),b=writeBatch(db);
+ const dup=NAMES.findIndex(x=>x.toUpperCase()===name);
+ if(dup>=0){if(DEL.has(dup+1)){$m();askRestore(dup+1);return}toast("Esa tarea ya existe");return}
+ const id=String(NAMES.length+1),b=writeBatch(db);
  b.set(doc(sisCol,id),{name,by:uid,byName:NAME,at:serverTimestamp()});
  b.set(doc(histCol),{w:0,s:+id,sys:name,nueva:true,done:false,prev:false,by:uid,byName:NAME,at:serverTimestamp()});
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ No se pudo agregar la tarea (si otro técnico agregó una al mismo tiempo, probá de nuevo)":"❌ La tarea no se guardó: "+e.message));
  $m()};
+/* ---------- Eliminar / restaurar tareas (para todas las WTG) ----------
+   No se borra nada: queda un registro en meta y la tarea deja de mostrarse y de contar en el avance.
+   Lo que estaba tildado se conserva; al restaurarla vuelve igual que antes. */
+window.openDelTasks=()=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ const del=[...DEL].sort((a,b)=>a-b);
+ $("mub").innerHTML=`<h2>🗑 Eliminar tarea</h2><div class="sub">Elegí la tarea a eliminar. Se quita de las ${NW} WTG y deja de contar en el avance. Se puede restaurar.</div><div class="chips" style="max-height:46vh;overflow:auto">${SID.map(id=>`<button class="chip" onclick="askDelTask(${id})">${esc(nm(id))}</button>`).join("")}</div>${del.length?`<div class="sub" style="margin-top:12px"><b>Eliminadas</b> · tocá para restaurar</div><div class="chips">${del.map(id=>`<button class="chip" style="text-decoration:line-through;opacity:.75" onclick="askRestore(${id})">♻️ ${esc(nm(id))}</button>`).join("")}</div>`:""}<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" onclick="$m()">Cerrar</button></div>`;
+ $("mu").style.display="flex"};
+window.askDelTask=id=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ let c=0;for(let w=1;w<=NW;w++)if(T[KR(w,id)]&&T[KR(w,id)].done)c++;
+ const n=normN(nm(id)),clave=n==="RUN"||n.startsWith("SIN COMUNICACION");
+ $("mub").innerHTML=`<h2>🗑 Eliminar «${esc(nm(id))}»</h2><div class="sub">Se quita de <b>las ${NW} WTG</b> y deja de contar en el avance${c?` (hoy está completa en ${c} WTG; esos datos se guardan)`:""}. Queda en el historial y se puede restaurar desde «🗑 Eliminar tarea» en la pestaña WTG.</div>${clave?`<div class="sub" style="color:var(--nt)">⚠️ Esta tarea define el color de las WTG en el Mapa.</div>`:""}<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn dg" style="font-weight:700" onclick="delTask(${id},true)">🗑 Eliminar de todas las WTG</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.askRestore=id=>{
+ $("mub").innerHTML=`<h2>♻️ Restaurar «${esc(nm(id))}»</h2><div class="sub">La tarea vuelve a aparecer en las ${NW} WTG con el estado que tenía antes de eliminarla.</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="delTask(${id},false)">♻️ Restaurar tarea</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.delTask=(id,borrar)=>{
+ if(!canEdit())return;$m();
+ if(borrar&&NS<=1){toast("No se puede eliminar la última tarea");return}
+ const tipo=borrar?"borrada":"restaurada",b=writeBatch(db),name=nm(id);
+ b.set(doc(collection(db,...PROJ,"meta")),{tipo,sid:id,name,by:uid,byName:NAME,at:serverTimestamp()});
+ b.set(doc(histCol),{w:0,s:id,sys:name,[tipo]:true,done:false,prev:false,by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().then(()=>toast(borrar?`🗑 «${name}» eliminada`:`♻️ «${name}» restaurada`)).catch(e=>toast("❌ No se guardó: "+(e.code==="permission-denied"?"sin permiso":e.message)));
+ };
 /* ---------- Respaldo ---------- */
 const ser=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,v&&typeof v.toDate==="function"?v.toDate().toISOString():v]));
 const fdt=iso=>iso?new Date(iso).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"}):"";
@@ -1320,7 +1361,7 @@ function buildSheets(g){
  mat.push(tr);
  const piezas=[["Pieza","WTG donante","Recibe","Estado","Observaciones","Cargó","Fecha","Repuesta por","Fecha reposición"]].concat(g.piezas.map(x=>[x.pieza,"WTG "+pad(x.don),/^\d+$/.test(String(x.rcv))?"WTG "+pad(+x.rcv):x.rcv,x.repuesta?"Repuesta":"Pendiente",x.obs||"",x.byName||"",fdt(x.at),x.repByName||"",fdt(x.repAt)]));
  const acta=[["Fecha","Tipo","Técnico","WTG","Componente","Severidad","Fotos","Registro"]].concat(g.acta.map(a=>[fdt(a.at),a.tipo==="dano"?"DAÑO":"Acta",a.byName||"",a.wtg||"",a.comp||"",a.sev||"",a.nfotos||0,a.text]));
- const hist=[["Fecha","Técnico","Cambio"]].concat(g.historial.map(h=>[fdt(h.at),h.byName||"",h.restore?"Restauró los datos originales":h.nueva?"Nueva tarea: "+h.sys:`WTG ${pad(h.w)} · ${h.s>0&&S[h.s-1]?S[h.s-1]:h.sys} → ${h.done?"completo":"pendiente"}`]));
+ const hist=[["Fecha","Técnico","Cambio"]].concat(g.historial.map(h=>[fdt(h.at),h.byName||"",h.restore?"Restauró los datos originales":h.nueva?"Nueva tarea: "+h.sys:h.borrada?"Eliminó la tarea: "+h.sys:h.restaurada?"Restauró la tarea: "+h.sys:`WTG ${pad(h.w)} · ${nm(h.s)||h.sys} → ${h.done?"completo":"pendiente"}`]));
  return {"Matriz de avance":mat,"Piezas":piezas,"Acta":acta,"Historial":hist}}
 function dlBlob(blob,name){const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
 const hoy=()=>new Date().toISOString().slice(0,10);
