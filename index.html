@@ -435,6 +435,11 @@ function start(){
   DELEV=snap.docs.map(d=>{const x=d.data({serverTimestamps:"estimate"});return {sid:+x.sid,tipo:x.tipo,t:x.at&&x.at.toMillis?x.at.toMillis():Date.now(),byName:x.byName||"",at:x.at}});
   applyDel();render(true)
  },()=>{});
+ /* Adicionales TSA (hoja privada de glote): eventos en meta, vale el último de cada WTG/punto */
+ onSnapshot(query(collection(db,...PROJ,"meta"),where("tipo","in",["tsa","tsaitem"])),{includeMetadataChanges:true},snap=>{
+  TSAEV=snap.docs.map(d=>{const x=d.data({serverTimestamps:"estimate"});return {...x,t:x.at&&x.at.toMillis?x.at.toMillis():Date.now(),pending:d.metadata.hasPendingWrites}});
+  applyTsa();render(true)
+ },()=>{});
  onSnapshot(query(piezasCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   P=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
@@ -1345,6 +1350,44 @@ window.delTask=(id,borrar)=>{
  b.set(doc(histCol),{w:0,s:id,sys:name,[tipo]:true,done:false,prev:false,by:uid,byName:NAME,at:serverTimestamp()});
  b.commit().then(()=>toast(borrar?`🗑 «${name}» eliminada`:`♻️ «${name}» restaurada`)).catch(e=>toast("❌ No se guardó: "+(e.code==="permission-denied"?"sin permiso":e.message)));
  };
+/* ---------- 🔒 Adicionales TSA · Anexo 1.5 (solo visible para glote) ---------- */
+const TSA_BASE=[["1.5.1","Luz de balizamiento ORGA L550"],["1.5.2","CMS BKV"],["1.5.3","Protección contra incendio"],["1.5.5","Protección rayos y EMC"],["1.5.6","Detección de rayos VLD"],["1.5.8","Oil Debris Monitor"],["1.5.11","Serrated trailing edge"],["1.5.12","FSS"],["1.5.13","Alarma puerta de torre"],["1.5.14","Ascensor de servicio"]];
+let TSAEV=[],TI=[],TS={},tsel=null;
+const isGlote=()=>normN(NAME)==="GLOTE";
+function applyTsa(){
+ TI=TSA_BASE.map(([c,n],i)=>({id:"b"+i,c,n}));
+ TSAEV.filter(e=>e.tipo==="tsaitem").sort((a,b)=>a.t-b.t).forEach(e=>{if(!TI.some(x=>x.id===e.iid))TI.push({id:e.iid,c:e.c||"",n:e.n||""})});
+ TS={};TSAEV.filter(e=>e.tipo==="tsa").sort((a,b)=>a.t-b.t).forEach(e=>{TS[e.w+"|"+e.iid]={st:e.st||"",note:e.note||"",byName:e.byName,t:e.t,pending:e.pending}})}
+const tst=(w,id)=>TS[w+"|"+id]||{st:""};
+const tsaCnt=w=>{let d=0,n=0;TI.forEach(x=>{const s=tst(w,x.id).st;if(s==="na")return;n++;if(s==="d")d++});return [d,n]};
+function tsaSet(w,id,st,note){
+ if(!isGlote()||!canEdit())return;
+ const b=writeBatch(db);b.set(doc(collection(db,...PROJ,"meta")),{tipo:"tsa",w,iid:id,st,note:note||"",by:uid,byName:NAME,at:serverTimestamp()});
+ b.commit().catch(e=>toast("❌ No se guardó: "+e.message))}
+window.tsaSel=w=>{tsel=w;render(true)};
+window.tsaTap=(w,id)=>{const s=tst(w,id).st;if(!s){tsaSet(w,id,"d");return}tsaOpen(w,id)};
+window.tsaOpen=(w,id)=>{const x=TI.find(t=>t.id===id),c=tst(w,id);
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(x.c+" "+x.n)}</h2><div class="sub">Estado actual: <b>${{"":"pendiente",d:"completo",n:"con observación",na:"no aplica"}[c.st]}</b>${c.byName?` · ${esc(c.byName)} ${fmt(new Date(c.t))}`:""}</div><textarea id="tsn" maxlength="200" rows="3" placeholder="Observación (opcional)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(c.note||"")}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="tsaDo(${w},'${id}','d')">✓ Completo</button><button class="btn" onclick="tsaDo(${w},'${id}','n')">✏️ Guardar con observación</button><button class="btn" onclick="tsaDo(${w},'${id}','na')">⊘ No aplica en esta WTG</button><button class="btn" onclick="tsaDo(${w},'${id}','')">↩ Volver a pendiente</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex"};
+window.tsaDo=(w,id,st)=>{const v=($("tsn").value||"").trim();if(st==="n"&&!v){toast("Escribí la observación");return}$m();tsaSet(w,id,st,st===""?"":v)};
+window.tsaAdd=()=>{$("mub").innerHTML=`<h2>＋ Punto TSA</h2><div class="sub">Se agrega a las ${NW} WTG como pendiente.</div><input id="tsc" placeholder="Punto del anexo (ej. 1.5.4)" maxlength="10"><input id="tsm" placeholder="Descripción" maxlength="60"><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m()">Cancelar</button><button class="btn pri" onclick="tsaAddOk()">Agregar</button></div>`;$("mu").style.display="flex";setTimeout(()=>$("tsc")&&$("tsc").focus(),50)};
+window.tsaAddOk=()=>{const c=$("tsc").value.trim(),n=$("tsm").value.trim();if(!n){toast("Escribí la descripción");return}$m();
+ (b=>(b.set(doc(collection(db,...PROJ,"meta")),{tipo:"tsaitem",iid:"x"+Date.now().toString(36),c,n,by:uid,byName:NAME,at:serverTimestamp()}),b.commit()))(writeBatch(db)).catch(e=>toast("❌ No se guardó: "+e.message))};
+function vTsa(){
+ if(!isGlote())return `<div class="card sub">Hoja privada.</div>`;
+ if(!tsel&&matchMedia("(min-width:900px)").matches)tsel=MI||1;
+ let D=0,N=0;for(let w=1;w<=NW;w++){const [d,n]=tsaCnt(w);D+=d;N+=n}
+ let h=`<div class="md"><div class="mdl"><div class="card" style="padding:10px 12px;margin-bottom:10px"><b>🔒 Adicionales TSA · Anexo 1.5</b><div class="sub" style="margin:2px 0 6px">Hoja de glote · ${D}/${N} puntos revisados en el parque (${N?Math.round(D/N*100):0}%)</div>${bar(N?D/N*100:0)}<div style="margin-top:8px"><button class="btn" onclick="tsaAdd()">＋ Agregar punto</button></div></div><div class="wg">`;
+ for(let w=1;w<=NW;w++){const [d,n]=tsaCnt(w),p=n?Math.round(d/n*100):100,ob=TI.filter(x=>tst(w,x.id).st==="n").length;
+  h+=`<button class="w ${tsel==w?"on":""}" onclick="tsaSel(${w})"><b>WTG ${pad(w)}</b>${bar(p)}<span>${p}% · ${d}/${n}</span>${ob?`<span style="display:block;color:var(--nt);font-weight:600">✏️ ${ob} obs.</span>`:""}</button>`}
+ h+=`</div></div><div class="mdr">`;
+ if(tsel){const [d,n]=tsaCnt(tsel);
+  h+=`<div class="card"><h2>WTG ${pad(tsel)} · Adicionales TSA · ${d}/${n}</h2><div class="chips">`+TI.map(x=>{const c=tst(tsel,x.id),cl=c.st==="d"?"d":c.st==="n"?"n":"";
+   return `<button class="chip ${cl} ${c.pending?"p":""}" style="${c.st==="na"?"opacity:.55;text-decoration:line-through":""}" onclick="tsaTap(${tsel},'${x.id}')" oncontextmenu="event.preventDefault();tsaOpen(${tsel},'${x.id}')">${c.st==="d"?"✓ ":c.st==="na"?"⊘ ":""}<small style="opacity:.75">${esc(x.c)}</small> ${esc(x.n)}${c.st==="n"&&c.note?" · "+esc(c.note):""}</button>`}).join("")+`</div><div class="sub" style="margin-top:10px">Tocá un punto pendiente para marcarlo completo. Tocá uno ya marcado para cambiarlo, agregar observación o poner “no aplica”.</div></div>`;
+  const tb=`<div class="card" style="overflow:auto"><h2>Resumen por punto</h2><table style="width:100%;border-collapse:collapse;font-size:13px">${TI.map(x=>{let d=0,n=0,ob=0;for(let w=1;w<=NW;w++){const s=tst(w,x.id).st;if(s==="na")continue;n++;if(s==="d")d++;if(s==="n")ob++}return `<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 4px;white-space:nowrap;color:var(--mu)">${esc(x.c)}</td><td style="padding:6px 4px;font-weight:600">${esc(x.n)}</td><td style="padding:6px 4px;width:40%">${bar(n?d/n*100:0)}</td><td style="padding:6px 4px;text-align:right;white-space:nowrap">${d}/${n}${ob?` · <span style="color:var(--nt)">${ob} obs.</span>`:""}</td></tr>`}).join("")}</table></div>`;
+  h+=tb}
+ else h+=`<div class="sub" style="margin-top:10px">Tocá un WTG para ver y completar sus adicionales.</div>`;
+ return h+`</div></div>`}
 /* ---------- Respaldo ---------- */
 const ser=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,v&&typeof v.toDate==="function"?v.toDate().toISOString():v]));
 const fdt=iso=>iso?new Date(iso).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"}):"";
@@ -1410,9 +1453,10 @@ window.render=function(keep){
   :pendingN?`<div class="banner sy">⏳ Enviando ${pendingN} cambio${pendingN>1?"s":""} a la nube…</div>`
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
- $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Pizarra"],["mapa","🗺️ Mapa"],["wtg","🌀 WTG"],["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ if(tab=="tsa"&&!isGlote())tab="wtg";
+ $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Pizarra"],["mapa","🗺️ Mapa"],["wtg","🌀 WTG"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
- if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
  if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  paintDetail();
