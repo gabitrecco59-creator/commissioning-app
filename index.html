@@ -436,9 +436,9 @@ function start(){
   applyDel();render(true)
  },()=>{});
  /* Adicionales TSA (hoja privada de glote): eventos en meta, vale el último de cada WTG/punto */
- onSnapshot(query(collection(db,...PROJ,"meta"),where("tipo","in",["tsa","tsaitem"])),{includeMetadataChanges:true},snap=>{
+ onSnapshot(query(collection(db,...PROJ,"meta"),where("tipo","in",["tsa","tsaitem","tsaph"])),{includeMetadataChanges:true},snap=>{
   TSAEV=snap.docs.map(d=>{const x=d.data({serverTimestamps:"estimate"});return {...x,t:x.at&&x.at.toMillis?x.at.toMillis():Date.now(),pending:d.metadata.hasPendingWrites}});
-  applyTsa();render(true)
+  applyTsa();render(true);if(TOPEN&&$("mu").style.display==="flex"){tphRefresh();tphLoad(TOPEN[0],TOPEN[1])}
  },()=>{});
  onSnapshot(query(piezasCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   P=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
@@ -534,7 +534,7 @@ window.openUser=()=>{
  <div class="sub">Tu ID: <code>${esc(uid||"…")}</code>${isAdmin?"Sos <b>administrador</b>.":"Para ser administrador, agregá este ID en la colección <b>admins</b> (ver README)."}</div>
  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m(0)">Cerrar</button><button class="btn" style="background:var(--ac);color:#fff;border-color:var(--ac)" onclick="saveName()">Guardar</button></div>`;
  $("mu").style.display="flex";setTimeout(()=>$("nm")&&$("nm").focus(),50)};
-window.$m=()=>{$("mu").style.display="none";$("mu").classList.remove("wide");OPENID=null};
+window.$m=()=>{$("mu").style.display="none";$("mu").classList.remove("wide");OPENID=null;TOPEN=null};
 $("mu").addEventListener("click",e=>{if(e.target===$("mu"))$m()});
 document.addEventListener("gate-ok",e=>{NAME=String(e.detail||"").trim();try{localStorage.setItem("tecnico",NAME)}catch(x){}render(true);toast("¡Hola, "+NAME+"! 👋",true)});
 window.saveName=()=>{const v=$("nm").value.trim();if(!v)return;NAME=v;localStorage.setItem("tecnico",v);$m();render(true)};
@@ -1352,11 +1352,12 @@ window.delTask=(id,borrar)=>{
  };
 /* ---------- 🔒 Adicionales TSA · Anexo 1.5 (solo visible para glote) ---------- */
 const TSA_BASE=[["1.5.1","Luz de balizamiento ORGA L550"],["1.5.2","CMS BKV"],["1.5.3","Protección contra incendio"],["1.5.5","Protección rayos y EMC"],["1.5.6","Detección de rayos VLD"],["1.5.8","Oil Debris Monitor"],["1.5.11","Serrated trailing edge"],["1.5.12","FSS"],["1.5.13","Alarma puerta de torre"],["1.5.14","Ascensor de servicio"]];
-let TSAEV=[],TI=[],TS={},tsel=null;
+let TSAEV=[],TI=[],TS={},tsel=null,TPH={},TPHD={},TOPEN=null;   // TPH: "w|iid" -> [fid,...] fotos visibles · TPHD: fid -> foto cargada
 const isGlote=()=>normN(NAME)==="GLOTE";
 function applyTsa(){
  TI=TSA_BASE.map(([c,n],i)=>({id:"b"+i,c,n}));
  TSAEV.filter(e=>e.tipo==="tsaitem").sort((a,b)=>a.t-b.t).forEach(e=>{if(!TI.some(x=>x.id===e.iid))TI.push({id:e.iid,c:e.c||"",n:e.n||""})});
+ TPH={};TSAEV.filter(e=>e.tipo==="tsaph").sort((a,b)=>a.t-b.t).forEach(e=>{const k=e.w+"|"+e.iid,L=TPH[k]=TPH[k]||[];if(e.op==="del"){const i=L.indexOf(e.fid);if(i>=0)L.splice(i,1)}else if(!L.includes(e.fid))L.push(e.fid)});
  TS={};TSAEV.filter(e=>e.tipo==="tsa").sort((a,b)=>a.t-b.t).forEach(e=>{TS[e.w+"|"+e.iid]={st:e.st||"",note:e.note||"",byName:e.byName,t:e.t,pending:e.pending}})}
 const tst=(w,id)=>TS[w+"|"+id]||{st:""};
 const tsaCnt=w=>{let d=0,n=0;TI.forEach(x=>{const s=tst(w,x.id).st;if(s==="na")return;n++;if(s==="d")d++});return [d,n]};
@@ -1366,9 +1367,27 @@ function tsaSet(w,id,st,note){
  b.commit().catch(e=>toast("❌ No se guardó: "+e.message))}
 window.tsaSel=w=>{tsel=w;render(true)};
 window.tsaTap=(w,id)=>{const s=tst(w,id).st;if(!s){tsaSet(w,id,"d");return}tsaOpen(w,id)};
-window.tsaOpen=(w,id)=>{const x=TI.find(t=>t.id===id),c=tst(w,id);
- $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(x.c+" "+x.n)}</h2><div class="sub">Estado actual: <b>${{"":"pendiente",d:"completo",n:"con observación",na:"no aplica"}[c.st]}</b>${c.byName?` · ${esc(c.byName)} ${fmt(new Date(c.t))}`:""}</div><textarea id="tsn" maxlength="200" rows="3" placeholder="Observación (opcional)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(c.note||"")}</textarea><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="tsaDo(${w},'${id}','d')">✓ Completo</button><button class="btn" onclick="tsaDo(${w},'${id}','n')">✏️ Guardar con observación</button><button class="btn" onclick="tsaDo(${w},'${id}','na')">⊘ No aplica en esta WTG</button><button class="btn" onclick="tsaDo(${w},'${id}','')">↩ Volver a pendiente</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
- $("mu").style.display="flex"};
+const tphHtml=(w,id)=>{const L=TPH[w+"|"+id]||[];
+ return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">${L.map(f=>TPHD[f]?`<span style="position:relative;display:inline-block"><img src="${TPHD[f].data}" style="width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer" onclick="tsaImg('${f}')"><button class="btn" title="Quitar foto" style="position:absolute;top:-6px;right:-6px;padding:0 6px;border-radius:50%;background:var(--card)" onclick="tsaPhDel(${w},'${id}','${f}')">✕</button></span>`:`<span style="width:84px;height:84px;border-radius:10px;border:1px dashed var(--bd);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--mu)">Cargando…</span>`).join("")}</div>
+ <label class="btn" style="display:block;text-align:center;cursor:pointer">📷 Agregar foto${L.length?` (${L.length})`:""}<input type="file" accept="image/*" multiple style="display:none" onchange="tsaPhAdd(this,${w},'${id}')"></label>`};
+const tphRefresh=()=>{if(TOPEN&&$("tph"))$("tph").innerHTML=tphHtml(TOPEN[0],TOPEN[1])};
+async function tphLoad(w,id){const miss=(TPH[w+"|"+id]||[]).filter(f=>!TPHD[f]);if(!miss.length)return;
+ try{const sn=await getDocs(query(fotosCol,where("actaId","==","tsa_"+w+"_"+id)));sn.docs.forEach(d=>{TPHD[d.id]=d.data()})}catch(e){toast("No se pudieron cargar las fotos (¿sin conexión?)")}
+ tphRefresh()}
+window.tsaImg=f=>{const x=TPHD[f];if(!x)return;const back=TOPEN;$("mub").innerHTML=`<img src="${x.data}" style="width:100%;border-radius:10px;display:block"><div style="text-align:right;margin-top:8px"><button class="btn" onclick="tsaOpen(${back[0]},'${back[1]}')">← Volver</button></div>`};
+window.tsaPhAdd=async(inp,w,id)=>{
+ if(!isGlote()||!canEdit())return;const fs=[...inp.files];inp.value="";let bad=0,n=0;
+ for(const f of fs){let ph;try{ph=await shrink(f)}catch(e){bad++;continue}
+  const b=writeBatch(db),ref=doc(fotosCol);
+  b.set(ref,{actaId:"tsa_"+w+"_"+id,i:Date.now(),data:ph.data,w:ph.w,h:ph.h,by:uid,at:serverTimestamp()});
+  b.set(doc(collection(db,...PROJ,"meta")),{tipo:"tsaph",op:"add",w,iid:id,fid:ref.id,by:uid,byName:NAME,at:serverTimestamp()});
+  TPHD[ref.id]={data:ph.data};b.commit().catch(e=>toast("❌ La foto no se guardó: "+e.message));n++}
+ if(bad)toast("No se pudo leer "+bad+" foto"+(bad>1?"s":"")+" (formato no compatible)");else if(n)toast("📷 Foto agregada",true)};
+window.tsaPhDel=(w,id,f)=>{if(!isGlote()||!confirm("¿Quitar esta foto?"))return;
+ const b=writeBatch(db);b.set(doc(collection(db,...PROJ,"meta")),{tipo:"tsaph",op:"del",w,iid:id,fid:f,by:uid,byName:NAME,at:serverTimestamp()});b.commit().catch(e=>toast("❌ No se guardó: "+e.message))};
+window.tsaOpen=(w,id)=>{const x=TI.find(t=>t.id===id),c=tst(w,id);TOPEN=[w,id];
+ $("mub").innerHTML=`<h2>WTG ${pad(w)} · ${esc(x.c+" "+x.n)}</h2><div class="sub">Estado actual: <b>${{"":"pendiente",d:"completo",n:"con observación",na:"no aplica"}[c.st]}</b>${c.byName?` · ${esc(c.byName)} ${fmt(new Date(c.t))}`:""}</div><textarea id="tsn" maxlength="200" rows="3" placeholder="Observación (opcional)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box">${esc(c.note||"")}</textarea><div id="tph">${tphHtml(w,id)}</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="tsaDo(${w},'${id}','d')">✓ Completo</button><button class="btn" onclick="tsaDo(${w},'${id}','n')">✏️ Guardar con observación</button><button class="btn" onclick="tsaDo(${w},'${id}','na')">⊘ No aplica en esta WTG</button><button class="btn" onclick="tsaDo(${w},'${id}','')">↩ Volver a pendiente</button><button class="btn" onclick="$m()">Cancelar</button></div>`;
+ $("mu").style.display="flex";tphLoad(w,id)};
 window.tsaDo=(w,id,st)=>{const v=($("tsn").value||"").trim();if(st==="n"&&!v){toast("Escribí la observación");return}$m();tsaSet(w,id,st,st===""?"":v)};
 window.tsaAdd=()=>{$("mub").innerHTML=`<h2>＋ Punto TSA</h2><div class="sub">Se agrega a las ${NW} WTG como pendiente.</div><input id="tsc" placeholder="Punto del anexo (ej. 1.5.4)" maxlength="10"><input id="tsm" placeholder="Descripción" maxlength="60"><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m()">Cancelar</button><button class="btn pri" onclick="tsaAddOk()">Agregar</button></div>`;$("mu").style.display="flex";setTimeout(()=>$("tsc")&&$("tsc").focus(),50)};
 window.tsaAddOk=()=>{const c=$("tsc").value.trim(),n=$("tsm").value.trim();if(!n){toast("Escribí la descripción");return}$m();
@@ -1383,7 +1402,7 @@ function vTsa(){
  h+=`</div></div><div class="mdr">`;
  if(tsel){const [d,n]=tsaCnt(tsel);
   h+=`<div class="card"><h2>WTG ${pad(tsel)} · Adicionales TSA · ${d}/${n}</h2><div class="chips">`+TI.map(x=>{const c=tst(tsel,x.id),cl=c.st==="d"?"d":c.st==="n"?"n":"";
-   return `<button class="chip ${cl} ${c.pending?"p":""}" style="${c.st==="na"?"opacity:.55;text-decoration:line-through":""}" onclick="tsaTap(${tsel},'${x.id}')" oncontextmenu="event.preventDefault();tsaOpen(${tsel},'${x.id}')">${c.st==="d"?"✓ ":c.st==="na"?"⊘ ":""}<small style="opacity:.75">${esc(x.c)}</small> ${esc(x.n)}${c.st==="n"&&c.note?" · "+esc(c.note):""}</button>`}).join("")+`</div><div class="sub" style="margin-top:10px">Tocá un punto pendiente para marcarlo completo. Tocá uno ya marcado para cambiarlo, agregar observación o poner “no aplica”.</div></div>`;
+   return `<button class="chip ${cl} ${c.pending?"p":""}" style="${c.st==="na"?"opacity:.55;text-decoration:line-through":""}" onclick="tsaTap(${tsel},'${x.id}')" oncontextmenu="event.preventDefault();tsaOpen(${tsel},'${x.id}')">${c.st==="d"?"✓ ":c.st==="na"?"⊘ ":""}<small style="opacity:.75">${esc(x.c)}</small> ${esc(x.n)}${c.st==="n"&&c.note?" · "+esc(c.note):""}${(TPH[tsel+"|"+x.id]||[]).length?` <span title="Fotos">📷${TPH[tsel+"|"+x.id].length}</span>`:""}</button>`}).join("")+`</div><div class="sub" style="margin-top:10px">Tocá un punto pendiente para marcarlo completo. Tocá uno ya marcado para cambiarlo, agregar observación, <b>fotos</b> o poner “no aplica”. Para sacarle foto a un punto pendiente: mantenelo apretado (clic derecho en la PC).</div></div>`;
   const tb=`<div class="card" style="overflow:auto"><h2>Resumen por punto</h2><table style="width:100%;border-collapse:collapse;font-size:13px">${TI.map(x=>{let d=0,n=0,ob=0;for(let w=1;w<=NW;w++){const s=tst(w,x.id).st;if(s==="na")continue;n++;if(s==="d")d++;if(s==="n")ob++}return `<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 4px;white-space:nowrap;color:var(--mu)">${esc(x.c)}</td><td style="padding:6px 4px;font-weight:600">${esc(x.n)}</td><td style="padding:6px 4px;width:40%">${bar(n?d/n*100:0)}</td><td style="padding:6px 4px;text-align:right;white-space:nowrap">${d}/${n}${ob?` · <span style="color:var(--nt)">${ob} obs.</span>`:""}</td></tr>`}).join("")}</table></div>`;
   h+=tb}
  else h+=`<div class="sub" style="margin-top:10px">Tocá un WTG para ver y completar sus adicionales.</div>`;
