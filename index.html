@@ -251,7 +251,12 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
 /* ===== Chat ===== */
-.chl{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 330px);min-height:240px;overflow-y:auto;padding:4px 2px;margin-bottom:8px;overscroll-behavior:contain}
+.chl{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow-y:auto;padding:4px 2px;margin-bottom:8px;overscroll-behavior:contain}
+.chbd{display:none;background:var(--er);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:0 6px;margin-left:5px;line-height:16px}#chb.on{outline:2px solid var(--g1)}
+.chw{position:fixed;right:16px;bottom:16px;width:min(380px,calc(100vw - 16px));height:min(540px,calc(100dvh - 110px));display:none;flex-direction:column;z-index:800;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:10px 12px;box-shadow:0 24px 60px -12px rgba(0,0,0,.55)}
+.chw textarea{font:inherit;font-size:15px;padding:8px 10px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:inherit;resize:none;outline:none}.chw textarea:focus{border-color:var(--g1)}
+.chhd{display:flex;align-items:center;gap:8px;margin-bottom:6px}.chhd .btn{padding:3px 10px}
+@media(max-width:700px){.chw{left:8px;right:8px;bottom:8px;width:auto;height:min(74dvh,580px)}}
 .chm{display:flex}.chm.me{justify-content:flex-end}.chb{max-width:82%;background:var(--bg);border:1px solid var(--bd);border-radius:14px 14px 14px 4px;padding:6px 10px;min-width:0}
 .chm.me .chb{background:linear-gradient(135deg,var(--g1),var(--g2));border-color:transparent;color:#fff;border-radius:14px 14px 4px 14px}
 .chn{display:block;font-size:11.5px;color:var(--g2);margin-bottom:1px}.cht{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.35}
@@ -423,7 +428,7 @@ w.addEventListener("click",close);w.addEventListener("keydown",function(e){if(e.
 setTimeout(close,5200);})();</script>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
- <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="chb" onclick="chToggle()" title="Chat de técnicos">💬<span class="chbd" id="chbd"></span></button><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
 </div>
 <div id="banner"></div>
 <div class="tabs" id="tabs"></div>
@@ -525,8 +530,8 @@ function start(){
   A=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
  onSnapshot(query(chatCol,orderBy("ts","desc"),limit(300)),{includeMetadataChanges:true},snap=>{
-  CHerr="";CH=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data()}));chNotify();render(true)
- },e=>{CHerr=e.code||"error";render(true)});
+  CHerr="";CH=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data()}));chNotify();chPaint();render(true)
+ },e=>{CHerr=e.code||"error";chPaint()});
  onSnapshot(query(corteCol,orderBy("ts","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   CG=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
@@ -740,7 +745,7 @@ window.cgSave=()=>{const d=cgD;if(!canEdit())return;
  $m();cgD=null;toast(d.id?"Corte actualizado":"Corte registrado",true)};
 function cgUpd(b,c,arr){b.update(doc(corteCol,c.id),{revisadas:arr,revBy:uid,revByName:NAME,revAt:serverTimestamp()})}
 /* ---------- Chat entre técnicos (nivel 1: mensajes en tiempo real, sin push) ---------- */
-let CH=[],CHerr="",chDraft="",chInit=false,chKnown=new Set();
+let CH=[],CHerr="",CHopen=false,chDraft="",chInit=false,chKnown=new Set();
 const chSeen=()=>{try{return +(localStorage.getItem("chseen")||0)}catch(e){return 0}};
 const chMark=()=>{try{const t=CH.length?Math.max(...CH.map(m=>m.ts||0)):Date.now();localStorage.setItem("chseen",String(t))}catch(e){}};
 const chUnread=()=>{const t=chSeen();return CH.filter(m=>m.by!==uid&&(m.ts||0)>t).length};
@@ -749,7 +754,7 @@ function chNotify(){
  const nw=CH.filter(m=>!chKnown.has(m.id));CH.forEach(m=>chKnown.add(m.id));
  if(!chInit){chInit=true;return}
  const o=nw.filter(m=>m.by!==uid&&!m.pending);
- if(o.length&&!(tab==="chat"&&document.visibilityState==="visible")){const m=o[0];toast("💬 "+(m.byName||"Técnico")+": "+String(m.text).slice(0,60));chBeep()}
+ if(o.length&&!(CHopen&&document.visibilityState==="visible")){const m=o[0];toast("💬 "+(m.byName||"Técnico")+": "+String(m.text).slice(0,60));chBeep()}
  document.title=(chUnread()?"("+chUnread()+") ":"")+"Commissioning PE Olavarría"}
 const chDay=t=>{const d=new Date(t),h=new Date();return d.toDateString()===h.toDateString()?"Hoy":d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"})};
 function chatList(){
@@ -760,12 +765,14 @@ function chatList(){
   if(dk!==last){h+=`<div class="chd"><span>${esc(chDay(t))}</span></div>`;last=dk}
   h+=`<div class="chm${mine?" me":""}"><div class="chb">${mine?"":`<b class="chn">${esc(m.byName||"—")}</b>`}<div class="cht">${esc(m.text)}</div><span class="chh">${hhmm(new Date(t))}${m.pending?" ⏳":""}${mine&&!m.pending?` <a onclick="chDel('${m.id}')" title="Borrar mi mensaje">✕</a>`:""}</span></div></div>`});
  return h}
-function vChat(){
- chMark();document.title="Commissioning PE Olavarría";
- return `<div class="card chc"><h2 style="margin:0 0 6px">💬 Chat de técnicos</h2><div class="sub" style="margin:0 0 8px">Los mensajes los ven todos en tiempo real. Aviso solo con la app abierta.</div>
- <div id="chlist" class="chl">${chatList()}</div>
- <div class="chf"><textarea id="chtx" rows="2" maxlength="500" placeholder="Escribí un mensaje…" oninput="chDraft=this.value" onkeydown="chKey(event)">${esc(chDraft)}</textarea><button class="btn pri" onclick="chSend()">Enviar</button></div></div>`}
-window.chKey=e=>{if(e.key==="Enter"&&!e.shiftKey&&innerWidth>=900){e.preventDefault();chSend()}};
+function chBadge(){const n=chUnread(),e=$("chbd");if(e){e.textContent=n?String(n):"";e.style.display=n?"inline-block":"none"}}
+function chPaint(){const l=$("chlist");if(l&&CHopen){const nb=l.scrollHeight-l.scrollTop-l.clientHeight<90;l.innerHTML=chatList();if(nb)l.scrollTop=l.scrollHeight;chMark()}
+ document.title=(chUnread()?"("+chUnread()+") ":"")+"Commissioning PE Olavarría";chBadge()}
+function chBuild(){if($("chw"))return;document.body.insertAdjacentHTML("beforeend",`<div id="chw" class="chw" role="dialog" aria-label="Chat de técnicos"><div class="chhd"><b>💬 Chat de técnicos</b><span class="sub" style="margin:0;flex:1;font-size:11px">aviso con la app abierta</span><button class="btn" onclick="chToggle()" title="Cerrar" aria-label="Cerrar chat">✕</button></div><div id="chlist" class="chl"></div><div class="chf"><textarea id="chtx" rows="2" maxlength="500" placeholder="Escribí un mensaje…" oninput="chDraft=this.value" onkeydown="chKey(event)"></textarea><button class="btn pri" onclick="chSend()">Enviar</button></div></div>`);$("chtx").value=chDraft}
+window.chToggle=()=>{chBuild();CHopen=!CHopen;$("chw").style.display=CHopen?"flex":"none";$("chb").classList.toggle("on",CHopen);
+ if(CHopen){chMark();document.title="Commissioning PE Olavarría";const l=$("chlist");l.innerHTML=chatList();l.scrollTop=l.scrollHeight;chBadge();setTimeout(()=>{const t=$("chtx");if(t)t.focus({preventScroll:true})},60)}}
+addEventListener("keydown",e=>{if(e.key==="Escape"&&CHopen)chToggle()});
+window.chKey=e=>{if(e.key==="Enter"&&!e.shiftKey&&innerWidth>=700){e.preventDefault();chSend()}};
 window.chSend=()=>{if(!canEdit()){if(!NAME)openUser();return}
  const el=$("chtx"),t=(el?el.value:chDraft).trim();if(!t)return;
  const b=writeBatch(db);b.set(doc(chatCol),{text:t.slice(0,500),by:uid,byName:NAME,ts:Date.now(),at:serverTimestamp()});
@@ -1853,10 +1860,10 @@ function wtgActa(w){
  return h+L.map(a=>entryHtml(a,true)).join("")+`</div>`}
 window.setMapS=n=>{mapS=mapS===n||!n?0:n;render(true)};
 window.setSel=w=>{sel=w;render(true)};
-window.setTab=k=>{tab=k;render();if(k==="chat")setTimeout(chBottom,30)};
+window.setTab=k=>{tab=k;render()};
 window.render=function(keep){
  const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
- $("usr").textContent="👤 "+(NAME||"Identificarme");$("thm").textContent=isDark()?"☀️":"🌙";
+ $("usr").textContent="👤 "+(NAME||"Identificarme");chBadge();$("thm").textContent=isDark()?"☀️":"🌙";
  const last=H[0],at=last&&last.at&&last.at.toDate?last.at.toDate():null;
  $("meta").innerHTML=`PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · ${NW} WTG × ${NS} sistemas`+(last?`<br>Última modificación: ${fmt(at)} por ${esc(last.byName||"—")}`:"");
  $("banner").innerHTML=wxBanner()+(fatal?`<div class="banner of">${esc(fatal)}</div>`:seedErr?`<div class="banner of">${esc(seedErr)}</div>`
@@ -1865,9 +1872,9 @@ window.render=function(keep){
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
  if(tab=="tsa"&&!isGlote())tab="wtg";
- $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["chat","💬 Chat"+(chUnread()&&tab!=="chat"?" 🔴"+chUnread():"")],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
- if(tab=="chat"&&keep&&ready&&$("chlist")){const l=$("chlist"),nb=l.scrollHeight-l.scrollTop-l.clientHeight<80;l.innerHTML=chatList();if(nb)l.scrollTop=l.scrollHeight;chMark()}else if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="chat"?vChat():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
+ if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
  if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  paintDetail();
