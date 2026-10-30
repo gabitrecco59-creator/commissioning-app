@@ -278,6 +278,9 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .cgw2.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,var(--bd));background:color-mix(in srgb,var(--ok) 10%,transparent)}
 .cgw2.no{color:var(--er);border-color:var(--er);background:color-mix(in srgb,var(--er) 12%,transparent);cursor:pointer}
 .cgw2.rv{color:var(--nt);border-color:var(--nt);background:color-mix(in srgb,var(--nt) 12%,transparent);cursor:pointer}
+.cgw2.un{color:var(--mu);background:var(--bg)}
+.cgact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cgud{border-color:var(--nt)!important}.cgud h2{color:var(--nt)}
 .cgseg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;margin:8px 0 10px}
 .cgseg button{flex:1;border:0;background:none;color:var(--mu);padding:10px;border-radius:9px;font:700 14px inherit;font-family:inherit;cursor:pointer}
 .cgseg button.on{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff}
@@ -595,7 +598,8 @@ const pd2=n=>String(n).padStart(2,"0");
 const cgDate=ms=>{const d=new Date(ms);return pd2(d.getDate())+"/"+pd2(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2)+" "+pd2(d.getHours())+":"+pd2(d.getMinutes())};
 const cgDay=ms=>{const d=new Date(ms);return pd2(d.getDate())+"/"+pd2(d.getMonth()+1)};
 const dtLocal=ms=>{const d=new Date(ms);return d.getFullYear()+"-"+pd2(d.getMonth()+1)+"-"+pd2(d.getDate())+"T"+pd2(d.getHours())+":"+pd2(d.getMinutes())};
-const cgNoV=c=>(c.wtgs||[]).filter(w=>!(c.vuelven||[]).includes(w));
+const cgDef=c=>c.def!==false;
+const cgNoV=c=>cgDef(c)?(c.wtgs||[]).filter(w=>!(c.vuelven||[]).includes(w)):[];
 function cgStats(){
  const aff={},nov={},pen={};for(let w=1;w<=NW;w++){aff[w]=0;nov[w]=0;pen[w]=0}
  const alerts=[];let ev=0,pr=0,novT=0,affT=0;
@@ -629,6 +633,8 @@ function vCorte(){
  const kp=(n,l,c)=>`<div class="kpi"><b${c?` style="-webkit-text-fill-color:${c};color:${c};background:none"`:""}>${n}</b><div class="sub" style="margin:2px 0 0">${l}</div></div>`;
  const pw={};s.alerts.forEach(a=>{(pw[a.w]=pw[a.w]||[]).push(a)});
  const aw=Object.keys(pw).map(Number).sort((a,b)=>pw[b].length-pw[a].length||a-b);
+ const und=CG.filter(c=>c.tipo==="evento"&&!cgDef(c));
+ const ud=und.length?`<div class="card cgud"><h2>🕓 Eventos sin definir cuáles turbinas no volvieron (${und.length})</h2>${und.map(c=>`<div class="cgrow"><div><b>${cgDate(c.ts)}</b> <span class="sub" style="display:inline">· ${(c.circ||[]).map(x=>"C"+x).join(" ")} · ${(c.wtgs||[]).length} turbinas</span></div><button class="btn pri" onclick="cgRet('${c.id}')">Definir cuáles no volvieron</button></div>`).join("")}</div>`:"";
  const al=aw.length?`<div class="card cgal"><h2>⚠️ Turbinas que no volvieron solas · para revisar (${aw.length})</h2>${aw.map(w=>{const l=pw[w],last=Math.max(...l.map(x=>x.ts));return `<div class="cgrow"><div><b>WTG ${pad(w)}</b> <span class="sub" style="display:inline">· C${circOf(w)}</span><div class="sub" style="margin:2px 0 0">No volvió sola en <b>${l.length}</b> evento${l.length>1?"s":""} sin revisar · último ${cgDate(last)}</div></div><button class="btn" onclick="cgRevW(${w})">✔ Marcada como revisada</button></div>`}).join("")}</div>`
   :(CG.length?`<div class="card" style="border-color:var(--ok)"><span style="color:var(--ok);font-weight:700">✔ Sin alertas: todas las turbinas que no volvieron solas ya fueron revisadas.</span></div>`:"");
  const tiles=Array.from({length:NW},(_,i)=>i+1).map(w=>{const a=s.aff[w],n=s.nov[w],p=s.pen[w];
@@ -637,49 +643,65 @@ function vCorte(){
   return `<div class="cgcc"><b>C${c}</b><span>${k} corte${k===1?"":"s"}</span><span style="color:${nv?"var(--er)":"var(--mu)"}">${nv} con WTG sin volver</span></div>`}).join("");
  const list=CG.filter(c=>!fw||(c.wtgs||[]).includes(fw));
  const log=list.map(c=>{const nv=cgNoV(c),rv=c.revisadas||[],isEv=c.tipo==="evento";
-  return `<div class="card cglog"><div class="cgh"><span class="cgb2 ${isEv?"ev":"pr"}">${isEv?"⚡ EVENTO":"🗓 PROGRAMADO"}</span><b>${cgDate(c.ts)}</b><span class="sub" style="margin:0">${(c.circ||[]).map(x=>"C"+x).join(" · ")}</span><span class="sub" style="margin:0 0 0 auto">${esc(c.byName||"")}${c.pending?" ⏳":""}</span>${isAdmin?`<button class="btn" style="padding:2px 8px" title="Borrar (admin)" onclick="cgDel('${c.id}')">🗑</button>`:""}</div>
-  <div class="cgchips">${(c.wtgs||[]).map(w=>{const back=!nv.includes(w),rev=rv.includes(w);return `<span class="cgw2 ${back?"ok":rev?"rv":"no"}" ${!back&&isEv?`onclick="cgRev('${c.id}',${w})" title="${rev?"Revisada · tocá para desmarcar":"No volvió sola · tocá para marcar revisada"}"`:""}>${pad(w)} ${back?"↺":rev?"✔":"⚠"}</span>`}).join("")}</div>
-  <div class="sub" style="margin:6px 0 0">${isEv?(nv.length?`<b style="color:var(--er)">${nv.length} no volvió sola</b> · ${(c.wtgs||[]).length-nv.length} volvieron solas`:`✔ Todas volvieron solas (${(c.wtgs||[]).length})`):`${(c.wtgs||[]).length} turbinas · corte programado`}${c.nota?` · ${esc(c.nota)}`:""}</div></div>`}).join("")||`<div class="card sub">Todavía no hay cortes registrados${fw?" para la WTG "+pad(fw):""}.</div>`;
+  return `<div class="card cglog"><div class="cgh"><span class="cgb2 ${isEv?"ev":"pr"}">${isEv?"⚡ EVENTO":"🗓 PROGRAMADO"}</span><b>${cgDate(c.ts)}</b><span class="sub" style="margin:0">${(c.circ||[]).map(x=>"C"+x).join(" · ")}</span><span class="sub" style="margin:0 0 0 auto">${esc(c.byName||"")}${c.pending?" ⏳":""}</span></div>
+  <div class="cgchips">${(c.wtgs||[]).map(w=>{const un=isEv&&!cgDef(c),back=!nv.includes(w),rev=rv.includes(w);if(un)return `<span class="cgw2 un">${pad(w)}</span>`;return `<span class="cgw2 ${back?"ok":rev?"rv":"no"}" ${!back&&isEv?`onclick="cgRev('${c.id}',${w})" title="${rev?"Revisada · tocá para desmarcar":"No volvió sola · tocá para marcar revisada"}"`:""}>${pad(w)} ${back?"↺":rev?"✔":"⚠"}</span>`}).join("")}</div>
+  <div class="sub" style="margin:6px 0 0">${isEv&&!cgDef(c)?`🕓 <b>Falta definir cuáles no volvieron solas</b> · ${(c.wtgs||[]).length} turbinas`:isEv?(nv.length?`<b style="color:var(--er)">${nv.length} no volvió sola</b> · ${(c.wtgs||[]).length-nv.length} volvieron solas`:`✔ Todas volvieron solas (${(c.wtgs||[]).length})`):`${(c.wtgs||[]).length} turbinas · corte programado`}${c.nota?` · ${esc(c.nota)}`:""}${c.editedByName?` · ✏️ editado por ${esc(c.editedByName)}`:""}</div>
+  <div class="cgact">${isEv?`<button class="btn${cgDef(c)?"":" pri"}" onclick="cgRet('${c.id}')">${cgDef(c)?"↺ Cambiar cuáles no volvieron":"Definir cuáles no volvieron"}</button>`:""}<button class="btn" onclick="cgEdit('${c.id}')">✏️ Editar</button><button class="btn dg" onclick="cgDel('${c.id}')">🗑 Borrar</button></div></div>`}).join("")||`<div class="card sub">Todavía no hay cortes registrados${fw?" para la WTG "+pad(fw):""}.</div>`;
  return `<div class="card cghd"><div><h2 style="margin:0">⚡ Corte de grid</h2><div class="sub" style="margin:2px 0 0">Registrá cada corte, qué circuitos y turbinas afectó y cuáles volvieron solas.</div></div><button class="btn pri" onclick="cgNew()">➕ Registrar corte</button></div>
  <div class="cgk">${kp(CG.length,"cortes registrados · "+s.ev+" evento"+(s.ev===1?"":"s")+" / "+s.pr+" programado"+(s.pr===1?"":"s"))}${kp(s.affT,"afectaciones de turbinas")}${kp(s.novT,"no volvieron solas","var(--er)")}${kp(aw.length,"WTG para revisar",aw.length?"var(--nt)":"var(--ok)")}</div>
- ${al}
+ ${ud}${al}
  <div class="card"><h2>📈 Turbinas que no volvieron solas</h2>${cgChart()}<div class="sub" style="margin:6px 0 0">Solo cuentan los cortes tipo <b>evento</b>. Los programados se registran pero no generan alerta.</div></div>
  <div class="card"><h2>🌀 Por turbina${fw?` · filtrando WTG ${pad(fw)} <button class="btn" style="padding:2px 8px" onclick="cgFilt(0)">✕ quitar filtro</button>`:""}</h2><div class="cgw">${tiles}</div></div>
  <div class="card"><h2>🔌 Por circuito</h2><div class="cgcs">${cs}</div></div>
  <h2 style="margin:14px 2px 8px">🕘 Registro de cortes${fw?` · WTG ${pad(fw)}`:""}</h2>${log}`;
 }
 window.cgFilt=w=>{cgFw=cgFw===w?0:w;render(true)};
-window.cgNew=()=>{if(!canEdit()){if(!NAME)openUser();return}cgD={tipo:"evento",dt:dtLocal(Date.now()),w:[],v:[],nota:""};cgForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
+window.cgNew=()=>{if(!canEdit()){if(!NAME)openUser();return}cgD={tipo:"evento",dt:dtLocal(Date.now()),w:[],v:[],nota:"",def:false};cgForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
 function cgForm(){const d=cgD,ws=[...d.w].sort((a,b)=>a-b);
  const cc=Object.keys(CIRC).map(Number).sort((a,b)=>a-b).map(c=>{const all=CIRC[c].every(w=>d.w.includes(w)),some=CIRC[c].some(w=>d.w.includes(w));return `<button type="button" class="cgp${all?" on":some?" half":""}" onclick="cgTogC(${c})">C${c}</button>`}).join("");
  const wt=Array.from({length:NW},(_,i)=>i+1).map(w=>`<button type="button" class="cgp${d.w.includes(w)?" on":""}" onclick="cgTogW(${w})">${pad(w)}</button>`).join("");
  const rt=ws.map(w=>{const ok=d.v.includes(w);return `<button type="button" class="cgr ${ok?"ok":"bad"}" onclick="cgTogV(${w})"><b>WTG ${pad(w)}</b><span>${ok?"↺ volvió sola":"⚠ no volvió"}</span></button>`}).join("");
- $("mub").innerHTML=`<div style="padding:18px"><h2 style="font-size:18px">⚡ Registrar corte de grid</h2>
+ $("mub").innerHTML=`<div style="padding:18px"><h2 style="font-size:18px">${d.id?"✏️ Editar corte de grid":"⚡ Registrar corte de grid"}</h2>
  <div class="cgseg"><button type="button" class="${d.tipo==="evento"?"on":""}" onclick="cgSetT('evento')">⚡ Evento</button><button type="button" class="${d.tipo==="programado"?"on":""}" onclick="cgSetT('programado')">🗓 Programado</button></div>
  <label class="sub">Fecha y hora del corte</label><input type="datetime-local" value="${d.dt}" oninput="cgD.dt=this.value" style="margin:4px 0 10px">
  <label class="sub">1 · Circuitos afectados (tocá para marcar todas sus turbinas)</label><div class="cgpick">${cc}</div>
  <label class="sub">2 · Turbinas afectadas (${ws.length} seleccionada${ws.length===1?"":"s"})</label><div class="cgpick">${wt}</div>
- <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px"><label class="sub" style="margin:0;flex:1 1 220px">3 · ¿Cuáles volvieron solas después del corte? (tocá las que <b>NO</b> volvieron)</label><button type="button" class="btn" onclick="cgAllV(1)">Todas volvieron</button><button type="button" class="btn" onclick="cgAllV(0)">Ninguna volvió</button></div>
- <div class="cgret">${rt||`<div class="sub">Elegí primero circuito o turbinas.</div>`}</div>
+ ${d.id&&d.tipo==="evento"?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px"><label class="sub" style="margin:0;flex:1 1 220px">3 · ¿Cuáles volvieron solas? (tocá las que <b>NO</b> volvieron)${d.def?"":" · sin definir todavía"}</label><button type="button" class="btn" onclick="cgAllV(1)">Todas volvieron</button><button type="button" class="btn" onclick="cgAllV(0)">Ninguna volvió</button></div>
+ <div class="cgret">${rt||`<div class="sub">Elegí primero circuito o turbinas.</div>`}</div>`:`<div class="sub" style="margin:12px 0 4px">Después de guardar, en el registro vas a poder indicar <b>cuáles turbinas no volvieron solas</b>.</div>`}
  <label class="sub">Nota (opcional)</label><input maxlength="300" placeholder="Ej: disparo de protección en ET, causa, hora de normalización…" value="${esc(d.nota)}" oninput="cgD.nota=this.value">
  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px"><button class="btn" onclick="$m()">Cancelar</button><button class="btn pri" onclick="cgSave()">Guardar corte</button></div></div>`}
 window.cgSetT=t=>{cgD.tipo=t;cgForm()};
 window.cgTogW=w=>{const d=cgD;if(d.w.includes(w)){d.w=d.w.filter(x=>x!==w);d.v=d.v.filter(x=>x!==w)}else{d.w.push(w);d.v.push(w)}cgForm()};
 window.cgTogC=c=>{const d=cgD,l=CIRC[c];if(l.every(w=>d.w.includes(w))){d.w=d.w.filter(w=>!l.includes(w));d.v=d.v.filter(w=>!l.includes(w))}else l.forEach(w=>{if(!d.w.includes(w)){d.w.push(w);d.v.push(w)}});cgForm()};
-window.cgTogV=w=>{const d=cgD;d.v=d.v.includes(w)?d.v.filter(x=>x!==w):[...d.v,w];cgForm()};
-window.cgAllV=a=>{cgD.v=a?[...cgD.w]:[];cgForm()};
+window.cgTogV=w=>{const d=cgD;d.def=true;d.v=d.v.includes(w)?d.v.filter(x=>x!==w):[...d.v,w];cgForm()};
+window.cgAllV=a=>{cgD.def=true;cgD.v=a?[...cgD.w]:[];cgForm()};
 window.cgSave=()=>{const d=cgD;if(!canEdit())return;
  if(!d.w.length){toast("Elegí al menos una turbina o circuito");return}
  const ts=new Date(d.dt).getTime();if(!ts){toast("Indicá fecha y hora del corte");return}
  const wtgs=[...d.w].sort((a,b)=>a-b),circ=Object.keys(CIRC).map(Number).filter(c=>CIRC[c].some(w=>wtgs.includes(w))).sort((a,b)=>a-b);
- const b=writeBatch(db);b.set(doc(corteCol),{tipo:d.tipo,ts,circ,wtgs,vuelven:wtgs.filter(w=>d.v.includes(w)),nota:d.nota.trim().slice(0,300),by:uid,byName:NAME,at:serverTimestamp()});
+ const b=writeBatch(db),vuelven=wtgs.filter(w=>d.v.includes(w)),base={tipo:d.tipo,ts,circ,wtgs,vuelven,nota:d.nota.trim().slice(0,300)};
+ if(d.id){const c=CG.find(x=>x.id===d.id)||{},nvNew=wtgs.filter(w=>!vuelven.includes(w));b.update(doc(corteCol,d.id),{...base,def:d.tipo==="evento"?!!d.def:true,revisadas:(c.revisadas||[]).filter(w=>nvNew.includes(w)),editedBy:uid,editedByName:NAME,editedAt:serverTimestamp()})}
+ else b.set(doc(corteCol),{...base,vuelven:wtgs,def:d.tipo!=="evento",by:uid,byName:NAME,at:serverTimestamp()});
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el corte NO se guardó (¿publicaste las reglas nuevas?)":"❌ El corte no se guardó: "+e.message));
- $m();cgD=null;toast("Corte registrado",true)};
+ $m();cgD=null;toast(d.id?"Corte actualizado":"Corte registrado",true)};
 function cgUpd(b,c,arr){b.update(doc(corteCol,c.id),{revisadas:arr,revBy:uid,revByName:NAME,revAt:serverTimestamp()})}
 const cgErr=e=>toast(e.code==="permission-denied"?"❌ Sin permiso (¿publicaste las reglas nuevas?)":"❌ No se guardó: "+e.message);
 window.cgRev=(id,w)=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;const r=c.revisadas||[],n=r.includes(w)?r.filter(x=>x!==w):[...r,w];const b=writeBatch(db);cgUpd(b,c,n);b.commit().catch(cgErr)};
 window.cgRevW=w=>{if(!canEdit()){if(!NAME)openUser();return}const b=writeBatch(db);let k=0;CG.forEach(c=>{if(c.tipo==="evento"&&cgNoV(c).includes(w)&&!(c.revisadas||[]).includes(w)){cgUpd(b,c,[...(c.revisadas||[]),w]);k++}});if(k)b.commit().then(()=>toast("WTG "+pad(w)+" marcada como revisada",true)).catch(cgErr)};
-window.cgDel=id=>{if(!isAdmin||!confirm("¿Borrar este corte? No se puede deshacer."))return;const b=writeBatch(db);b.delete(doc(corteCol,id));b.commit().catch(cgErr)};
+window.cgDel=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c||!confirm("¿Borrar el corte del "+cgDate(c.ts)+"? No se puede deshacer."))return;const b=writeBatch(db);b.delete(doc(corteCol,id));b.commit().then(()=>toast("Corte borrado",true)).catch(cgErr)};
+window.cgEdit=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;cgD={id,tipo:c.tipo,dt:dtLocal(c.ts),w:[...(c.wtgs||[])],v:cgDef(c)?[...(c.vuelven||[])]:[...(c.wtgs||[])],nota:c.nota||"",def:cgDef(c)};cgForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
+let cgR=null;
+function cgRetForm(){const c=CG.find(x=>x.id===cgR.id);if(!c)return;const ws=[...(c.wtgs||[])].sort((a,b)=>a-b);
+ $("mub").innerHTML=`<div style="padding:18px"><h2 style="font-size:18px">↺ ¿Cuáles volvieron solas?</h2><div class="sub">Evento del <b>${cgDate(c.ts)}</b> · ${(c.circ||[]).map(x=>"C"+x).join(" ")}. Tocá las turbinas que <b>NO</b> volvieron solas (quedan en rojo y generan alerta).</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button type="button" class="btn" onclick="cgRetAll(1)">Todas volvieron</button><button type="button" class="btn" onclick="cgRetAll(0)">Ninguna volvió</button></div>
+ <div class="cgret">${ws.map(w=>{const ok=cgR.v.includes(w);return `<button type="button" class="cgr ${ok?"ok":"bad"}" onclick="cgRetTog(${w})"><b>WTG ${pad(w)}</b><span>${ok?"↺ volvió sola":"⚠ no volvió"}</span></button>`}).join("")}</div>
+ <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="$m()">Cancelar</button><button class="btn pri" onclick="cgRetSave()">Guardar</button></div></div>`}
+window.cgRet=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;cgR={id,v:cgDef(c)?[...(c.vuelven||[])]:[...(c.wtgs||[])]};cgRetForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
+window.cgRetTog=w=>{cgR.v=cgR.v.includes(w)?cgR.v.filter(x=>x!==w):[...cgR.v,w];cgRetForm()};
+window.cgRetAll=a=>{const c=CG.find(x=>x.id===cgR.id);cgR.v=a?[...(c.wtgs||[])]:[];cgRetForm()};
+window.cgRetSave=()=>{const c=CG.find(x=>x.id===cgR.id);if(!c||!canEdit())return;const wt=c.wtgs||[],v=wt.filter(w=>cgR.v.includes(w)),nv=wt.filter(w=>!v.includes(w));
+ const b=writeBatch(db);b.update(doc(corteCol,c.id),{vuelven:v,def:true,revisadas:(c.revisadas||[]).filter(w=>nv.includes(w)),editedBy:uid,editedByName:NAME,editedAt:serverTimestamp()});
+ b.commit().then(()=>toast(nv.length?nv.length+" turbina"+(nv.length>1?"s":"")+" sin volver: quedó la alerta":"Todas volvieron solas",true)).catch(cgErr);$m();cgR=null};
 
 const cgPend=()=>cgStats().alerts.length?new Set(cgStats().alerts.map(a=>a.w)).size:0;
 /* ---------- Conexión ---------- */
