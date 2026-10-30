@@ -15,13 +15,25 @@
     };
     f.__cx=1;window.toggleTheme=f;
   }
-  /* indicador deslizante */
-  function tabInd(){
+  /* indicador deslizante: usa offsetLeft/Top (relativos al contenedor que se desplaza) y conserva el scroll de la barra entre renders */
+  var prev=null,lastSL=0,tabsEl=null;
+  function geo(on){return {x:on.offsetLeft,y:on.offsetTop,w:on.offsetWidth,h:on.offsetHeight}}
+  function put(ind,g){ind.style.width=g.w+'px';ind.style.height=g.h+'px';ind.style.transform='translate('+g.x+'px,'+g.y+'px)'}
+  function tabInd(centrar){
     var nav=document.getElementById('tabs');if(!nav)return;
+    if(nav!==tabsEl){tabsEl=nav;nav.addEventListener('scroll',function(){lastSL=nav.scrollLeft},{passive:true})}
     var on=nav.querySelector('button.on');if(!on)return;
-    var ind=nav.querySelector('.cxind');if(!ind){ind=document.createElement('span');ind.className='cxind';nav.insertBefore(ind,nav.firstChild);nav.classList.add('cxi');ind.style.transition='none';setTimeout(function(){ind.style.transition=''},60)}
-    var nr=nav.getBoundingClientRect(),ar=on.getBoundingClientRect();
-    ind.style.width=ar.width+'px';ind.style.height=ar.height+'px';ind.style.transform='translate('+(ar.left-nr.left)+'px,'+(ar.top-nr.top)+'px)';
+    var ind=nav.querySelector('.cxind'),g=geo(on);
+    if(!ind){
+      ind=document.createElement('span');ind.className='cxind';nav.insertBefore(ind,nav.firstChild);nav.classList.add('cxi');
+      nav.scrollLeft=lastSL;
+      ind.style.transition='none';put(ind,prev||g);void ind.offsetWidth;ind.style.transition='';
+    }
+    put(ind,g);prev=g;
+    if(centrar){
+      var objetivo=on.offsetLeft-(nav.clientWidth-on.offsetWidth)/2;
+      if(Math.abs(nav.scrollLeft-objetivo)>2){if(red||!nav.scrollTo)nav.scrollLeft=objetivo;else nav.scrollTo({left:objetivo,behavior:'smooth'})}
+    }
   }
   /* números que cuentan */
   function count(el){
@@ -46,9 +58,9 @@
   function boot(){
     v=document.getElementById('v');wrapTheme();
     if(v)new MutationObserver(function(){requestAnimationFrame(onRender)}).observe(v,{childList:true});
-    var t=document.getElementById('tabs');if(t)new MutationObserver(function(){requestAnimationFrame(tabInd)}).observe(t,{childList:true});
-    addEventListener('resize',tabInd);onRender();
-    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(tabInd);
+    var t=document.getElementById('tabs');if(t)new MutationObserver(function(){requestAnimationFrame(function(){tabInd(true)})}).observe(t,{childList:true});
+    addEventListener('resize',function(){tabInd(true)});onRender();
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){tabInd(true)});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   /* window.toggleTheme se define en un módulo: reintenta unos instantes */
