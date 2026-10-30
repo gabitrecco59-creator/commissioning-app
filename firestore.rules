@@ -108,6 +108,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Cortes de grid (evento / programado): se agregan; solo se puede marcar "revisadas". Borrar: solo admin.
+    match /projects/{project}/cortes/{cid} {
+      allow read: if signed();
+      allow create: if signed()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.tipo in ['evento','programado']
+        && request.resource.data.ts is int
+        && request.resource.data.wtgs is list
+        && request.resource.data.wtgs.size() >= 1 && request.resource.data.wtgs.size() <= 29
+        && request.resource.data.vuelven is list
+        && (!('nota' in request.resource.data) || (request.resource.data.nota is string && request.resource.data.nota.size() <= 300));
+      allow update: if signed()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revisadas','revBy','revByName','revAt']);
+      allow delete: if isAdmin();
+    }
+
     match /projects/{project}/meta/{doc} {
       allow read: if signed();
       allow create: if signed();
