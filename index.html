@@ -435,7 +435,7 @@ w.addEventListener("click",close);w.addEventListener("keydown",function(e){if(e.
 setTimeout(close,5200);})();</script>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
- <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn fwbtn" data-k="nov" onclick="fwOpen('nov')" title="Novedades y clima">📰</button><button class="btn fwbtn" data-k="mapa" onclick="fwOpen('mapa')" title="Mapa del parque">🗺️</button><button class="btn fwbtn" data-k="his" onclick="fwOpen('his')" title="Historial">🕘</button><button class="btn" id="chb" onclick="chToggle()" title="Chat de técnicos">💬<span class="chbd" id="chbd"></span></button><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="dkb" onclick="openDark()" title="Intensidad del modo oscuro" style="display:none">🌗</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn fwbtn" data-k="nov" onclick="fwOpen('nov')" title="Novedades y clima">📰</button><button class="btn fwbtn" data-k="mapa" onclick="fwOpen('mapa')" title="Mapa del parque">🗺️</button><button class="btn fwbtn" data-k="his" onclick="fwOpen('his')" title="Historial">🕘</button><button class="btn" id="chb" onclick="chToggle()" title="Chat de técnicos">💬<span class="chbd" id="chbd"></span></button><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="dkb" onclick="openDark()" title="Apariencia: tono de color e intensidad del modo oscuro">🎨</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
 </div>
 <div id="banner"></div>
 <div class="tabs" id="tabs"></div>
@@ -463,23 +463,42 @@ const $=id=>document.getElementById(id);
 try{const t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t}catch(e){}
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches};
 window.toggleTheme=()=>{const n=isDark()?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("tema",n)}catch(e){}applyDark();render(true)};
-/* ---------- Intensidad del modo oscuro (0 = suave · 50 = normal · 100 = profundo/AMOLED) ---------- */
+/* ---------- Apariencia: intensidad del modo oscuro + tono de color ---------- */
 const DKP=[{bg:[27,35,54],card:[38,48,74],bd:[56,69,106],pe:[52,65,95],tx:[238,242,251],mu:[163,174,203]},
  {bg:[7,11,22],card:[16,23,41],bd:[31,42,68],pe:[28,39,64],tx:[232,237,249],mu:[139,151,181]},
  {bg:[0,0,0],card:[6,8,14],bd:[20,27,44],pe:[17,25,43],tx:[241,245,255],mu:[134,145,173]}];
-let DKV=50;try{const v=localStorage.getItem("dk");if(v!==null&&!isNaN(+v))DKV=Math.max(0,Math.min(100,+v))}catch(e){}
-function dkCol(k,v){const a=v<=50?DKP[0][k]:DKP[1][k],b=v<=50?DKP[1][k]:DKP[2][k],t=v<=50?v/50:(v-50)/50;return "rgb("+a.map((x,i)=>Math.round(x+(b[i]-x)*t)).join(",")+")"}
-function applyDark(){const r=document.documentElement.style,ks=["bg","card","bd","pe","tx","mu"];
- if(isDark()&&DKV!==50)ks.forEach(k=>r.setProperty("--"+k,dkCol(k,DKV)));else ks.forEach(k=>r.removeProperty("--"+k));
- const b=$("dkb");if(b)b.style.display=isDark()?"":"none"}
+const LTP={bg:[238,242,249],bd:[221,227,239],pe:[227,232,242]};
+const TONES={oceano:{n:"Océano",h:222,s:1,d:["#22d3ee","#a78bfa"],l:["#0ea5e9","#8b5cf6"]},
+ azul:{n:"Azul",h:214,s:1,d:["#60a5fa","#22d3ee"],l:["#2563eb","#0ea5e9"]},
+ verde:{n:"Bosque",h:155,s:.9,d:["#4ade80","#2dd4bf"],l:["#16a34a","#0d9488"]},
+ ambar:{n:"Atardecer",h:22,s:.95,d:["#fbbf24","#fb7185"],l:["#d97706","#e11d48"]},
+ rosa:{n:"Rosa",h:318,s:.9,d:["#f472b6","#a78bfa"],l:["#db2777","#7c3aed"]},
+ grafito:{n:"Grafito",h:220,s:.18,d:["#cbd5e1","#94a3b8"],l:["#475569","#64748b"]}};
+let DKV=50,TON="oceano";try{const v=localStorage.getItem("dk");if(v!==null&&!isNaN(+v))DKV=Math.max(0,Math.min(100,+v));const t=localStorage.getItem("tono");if(t&&TONES[t])TON=t}catch(e){}
+function rgbHsl([r,g,b]){r/=255;g/=255;b/=255;const m=Math.max(r,g,b),n=Math.min(r,g,b),l=(m+n)/2;let h=0,s=0;if(m!==n){const d=m-n;s=l>.5?d/(2-m-n):d/(m+n);h=m===r?(g-b)/d+(g<b?6:0):m===g?(b-r)/d+2:(r-g)/d+4;h*=60}return [h,s,l]}
+function hslRgb(h,s,l){const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;let r=0,g=0,b=0;if(h<60)[r,g,b]=[c,x,0];else if(h<120)[r,g,b]=[x,c,0];else if(h<180)[r,g,b]=[0,c,x];else if(h<240)[r,g,b]=[0,x,c];else if(h<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];return [r,g,b].map(v=>Math.round((v+m)*255))}
+function tint(rgb){const t=TONES[TON];if(TON==="oceano")return rgb;const [h,sa,l]=rgbHsl(rgb);return hslRgb(t.h,Math.min(1,sa*t.s),l)}
+function dkCol(k,v){const a=v<=50?DKP[0][k]:DKP[1][k],b=v<=50?DKP[1][k]:DKP[2][k],t=v<=50?v/50:(v-50)/50;return "rgb("+tint(a.map((x,i)=>Math.round(x+(b[i]-x)*t))).join(",")+")"}
+function applyDark(){const r=document.documentElement.style,t=TONES[TON],dk=isDark(),ks=["bg","card","bd","pe","tx","mu"],cs=["g1","g2","ac"];
+ ks.concat(cs).forEach(k=>r.removeProperty("--"+k));
+ if(dk&&(DKV!==50||TON!=="oceano"))ks.forEach(k=>r.setProperty("--"+k,dkCol(k,DKV)));
+ if(!dk&&TON!=="oceano")["bg","bd","pe"].forEach(k=>r.setProperty("--"+k,"rgb("+tint(LTP[k]).join(",")+")"));
+ if(TON!=="oceano"){const c=dk?t.d:t.l;r.setProperty("--g1",c[0]);r.setProperty("--g2",c[1]);r.setProperty("--ac",c[0])}
+ const b=$("dkb");if(b)b.style.display=""}
 matchMedia("(prefers-color-scheme: dark)").addEventListener&&matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyDark());
-window.dkSet=v=>{DKV=Math.max(0,Math.min(100,+v||0));try{localStorage.setItem("dk",String(DKV))}catch(e){}applyDark();const l=$("dkl");if(l)l.textContent=dkName()};
 const dkName=()=>DKV<=15?"Suave":DKV<=40?"Algo suave":DKV<=60?"Normal":DKV<=85?"Intenso":"Profundo (negro)";
-window.openDark=()=>{$("mub").innerHTML=`<h2>🌗 Intensidad del modo oscuro</h2><div class="sub">Elegí qué tan oscura querés la app. Se guarda en este dispositivo.</div>
- <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mu);margin-top:8px"><span>Suave</span><b id="dkl" style="color:var(--tx)">${dkName()}</b><span>Profundo</span></div>
- <input type="range" min="0" max="100" step="1" value="${DKV}" oninput="dkSet(this.value);document.getElementById('dkr').value=this.value" id="dkr" style="width:100%;margin:6px 0 12px;accent-color:var(--g1)">
- <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="dkSet(0);document.getElementById('dkr').value=0">Suave</button><button class="btn" onclick="dkSet(50);document.getElementById('dkr').value=50">Normal</button><button class="btn" onclick="dkSet(100);document.getElementById('dkr').value=100">Profundo</button></div>
- <div style="text-align:right;margin-top:14px"><button class="btn pri" onclick="$m()">Listo</button></div>`;$("mu").style.background="rgba(0,0,0,.06)";$("mu").style.alignItems="flex-end";$("mu").style.display="flex"};
+window.dkSet=v=>{DKV=Math.max(0,Math.min(100,+v||0));try{localStorage.setItem("dk",String(DKV))}catch(e){}applyDark();const l=$("dkl");if(l)l.textContent=dkName()};
+window.tonoSet=k=>{if(!TONES[k])return;TON=k;try{localStorage.setItem("tono",k)}catch(e){}applyDark();render(true);openDark(true)};
+window.apReset=()=>{DKV=50;TON="oceano";try{localStorage.setItem("dk","50");localStorage.setItem("tono","oceano")}catch(e){}applyDark();render(true);openDark(true)};
+window.openDark=keep=>{const dk=isDark();
+ const sw=Object.entries(TONES).map(([k,t])=>{const c=dk?t.d:t.l;return `<button onclick="tonoSet('${k}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;border:2px solid ${TON===k?"var(--g1)":"var(--bd)"};background:var(--bg);color:var(--tx);cursor:pointer;font-size:12px"><i style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,${c[0]},${c[1]})"></i>${t.n}</button>`}).join("");
+ $("mub").innerHTML=`<h2>🎨 Apariencia</h2><div class="sub">Tono de color de la app. Se guarda en este dispositivo.</div>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 14px">${sw}</div>
+ ${dk?`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mu)"><span>Suave</span><b id="dkl" style="color:var(--tx)">${dkName()}</b><span>Profundo</span></div>
+ <input type="range" min="0" max="100" step="1" value="${DKV}" oninput="dkSet(this.value)" id="dkr" style="width:100%;margin:6px 0 4px;accent-color:var(--g1)">
+ <div class="sub" style="margin:0 0 4px">Intensidad del modo oscuro</div>`:`<div class="sub">La intensidad aparece cuando usás el modo oscuro (🌙).</div>`}
+ <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px"><button class="btn" onclick="apReset()">Restablecer</button><button class="btn pri" onclick="$m()">Listo</button></div>`;
+ if(!keep){$("mu").style.background="rgba(0,0,0,.06)";$("mu").style.alignItems="flex-end";$("mu").style.display="flex"}};
 applyDark();
 
 /* ---------- Datos originales de la pizarra (se cargan UNA sola vez en la nube) ---------- */
@@ -1902,7 +1921,7 @@ function paintFW(keep){const w=$("fwb");if(!FW||!w)return;const real=tab;tab=FW;
   if(FW=="mapa")mapFit()}finally{tab=real}}
 window.render=function(keep){
  const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
- $("usr").textContent="👤 "+(NAME||"Identificarme");chBadge();$("thm").textContent=isDark()?"☀️":"🌙";{const b=$("dkb");if(b)b.style.display=isDark()?"":"none"}
+ $("usr").textContent="👤 "+(NAME||"Identificarme");chBadge();$("thm").textContent=isDark()?"☀️":"🌙";
  const last=H[0],at=last&&last.at&&last.at.toDate?last.at.toDate():null;
  $("meta").innerHTML=`PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · ${NW} WTG × ${NS} sistemas`+(last?`<br>Última modificación: ${fmt(at)} por ${esc(last.byName||"—")}`:"");
  $("banner").innerHTML=wxBanner()+(fatal?`<div class="banner of">${esc(fatal)}</div>`:seedErr?`<div class="banner of">${esc(seedErr)}</div>`
