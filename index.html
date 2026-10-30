@@ -401,13 +401,14 @@ document.getElementById("gate-form").addEventListener("submit",function(e){e.pre
 .wl-h{margin:8px 0 0;font-size:clamp(30px,8vw,48px);line-height:1.08;font-weight:800;animation:wlf .8s .7s both}
 .wl-p{margin:14px auto 0;font-size:clamp(15px,4.2vw,19px);line-height:1.45;opacity:.92;max-width:440px;animation:wlf .8s .95s both}
 .wl-pk{display:inline-block;margin-top:20px;padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.18);font-size:clamp(12px,3.4vw,15px);font-weight:600;animation:wlf .8s 1.2s both}
+@media(max-width:700px){.tile.nowx{display:none}}
 .wl-bar{margin:26px auto 0;width:min(70%,260px);height:4px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden;animation:wlf .5s 1.3s both}.wl-bar i{display:block;height:100%;background:#fff;width:0;animation:wlb 3.6s 1.3s linear forwards}
 @keyframes wlb{to{width:100%}}.wl-tap{margin-top:10px;font-size:13px;opacity:.7;animation:wlf .5s 1.6s both}
 @keyframes wlf{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.wl-rot,.wl-wind path,.wl-bar i{animation:none}.wl-t,.wl-hi,.wl-h,.wl-p,.wl-pk,.wl-bar,.wl-tap{animation:none}}
 </style>
 <script>(function(){var w=document.getElementById("welcome");if(!w)return;
-try{if(sessionStorage.getItem("wl-com")){w.remove();return}sessionStorage.setItem("wl-com","1")}catch(e){}
+try{var dk=new Date().toDateString();if(sessionStorage.getItem("wl-com")||localStorage.getItem("wl-day")===dk){w.remove();return}sessionStorage.setItem("wl-com","1");localStorage.setItem("wl-day",dk)}catch(e){}
 try{var n=localStorage.getItem("tecnico")||localStorage.getItem("svc-name")||"";if(n)document.getElementById("wl-hi").textContent="¡Bienvenido, "+n.replace(/[<>&"]/g,"")+"!"}catch(e){}
 var done=false;function close(){if(done)return;done=true;w.classList.add("out");setTimeout(function(){w.remove()},700)}
 w.addEventListener("click",close);w.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key==="Escape"||e.key===" ")close()});
@@ -423,6 +424,7 @@ setTimeout(close,5200);})();</script>
 <div class="toast" id="toast"></div>
 <div class="modal" id="mu"><div id="mub"></div></div>
 
+<script>if("serviceWorker" in navigator&&location.protocol==="https:"||location.hostname==="localhost")addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -729,7 +731,7 @@ function cgUpd(b,c,arr){b.update(doc(corteCol,c.id),{revisadas:arr,revBy:uid,rev
 const cgErr=e=>toast(e.code==="permission-denied"?"❌ Sin permiso (¿publicaste las reglas nuevas?)":"❌ No se guardó: "+e.message);
 window.cgRev=(id,w)=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;const r=c.revisadas||[],n=r.includes(w)?r.filter(x=>x!==w):[...r,w];const b=writeBatch(db);cgUpd(b,c,n);b.commit().catch(cgErr)};
 window.cgRevW=w=>{if(!canEdit()){if(!NAME)openUser();return}const b=writeBatch(db);let k=0;CG.forEach(c=>{if(c.tipo==="evento"&&cgNoV(c).includes(w)&&!(c.revisadas||[]).includes(w)){cgUpd(b,c,[...(c.revisadas||[]),w]);k++}});if(k)b.commit().then(()=>toast("WTG "+pad(w)+" marcada como revisada",true)).catch(cgErr)};
-window.cgDel=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c||!confirm("¿Borrar el corte del "+cgDate(c.ts)+"? No se puede deshacer."))return;const b=writeBatch(db);b.delete(doc(corteCol,id));b.commit().then(()=>toast("Corte borrado",true)).catch(cgErr)};
+window.cgDel=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c||!confirm("¿Borrar el corte del "+cgDate(c.ts)+"? No se puede deshacer."))return;const b=writeBatch(db),cp=JSON.parse(JSON.stringify(c));delete cp.id;delete cp.pending;b.set(doc(collection(db,...PROJ,"meta")),{tipo:"corteDel",corte:cp,cid:id,by:uid,byName:NAME,at:serverTimestamp()});b.delete(doc(corteCol,id));b.commit().then(()=>toast("Corte borrado (queda copia en el registro)",true)).catch(cgErr)};
 window.cgEdit=id=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;cgD={id,tipo:c.tipo,dt:dtLocal(c.ts),w:[...(c.wtgs||[])],v:cgDef(c)?[...(c.vuelven||[])]:[...(c.wtgs||[])],nota:c.nota||"",def:cgDef(c)};cgForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
 let cgR=null;
 function cgRetForm(){const c=CG.find(x=>x.id===cgR.id);if(!c)return;const ws=[...(c.wtgs||[])].sort((a,b)=>a-b);
@@ -996,7 +998,9 @@ function vRes(){
  h+=tile("pan","s3 r1","Avance total",`<div class="ctr"><div class="ringbox">${(()=>{const r=62,c=2*Math.PI*r;return `<svg viewBox="0 0 150 150" style="width:100%;height:auto"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--g1)"/><stop offset="1" stop-color="var(--g2)"/></linearGradient></defs><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--pe)" stroke-width="14"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${p>=100?"var(--ok)":"url(#gg)"}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${c*p/100} ${c}" transform="rotate(-90 75 75)" style="transition:stroke-dasharray 1s"/><text x="75" y="80" text-anchor="middle" font-size="30" font-weight="800" fill="var(--tx)">${p.toFixed(1)}%</text><text x="75" y="98" text-anchor="middle" font-size="10" fill="var(--mu)">${t} de ${TT}</text></svg>`})()}</div></div>`,"setTab('map')");
  h+=tile("pz","s3 r1","Resumen",`<div class="kq"><div><b style="color:var(--ok)">${t}</b><span>completos</span></div><div><b>${TT-t}</b><span>pendientes</span></div><div><b style="color:var(--g1)">${full}<small>/${NW}</small></b><span>WTG al 100%</span></div><div><b style="color:var(--nt)">${pt}</b><span>piezas sin reponer</span></div></div>`,"setTab('wtg')");
  h+=tile("hoy","s3 r1",`Hoy`,`<div class="big2">${a.c}<small> tareas · ${a.wt.length} WTG · ${A.filter(x=>{const d=toD(x)||(x.pending?new Date():null);return d&&d.toDateString()===new Date().toDateString()}).length} actas</small></div>${colsChart(days)}`);
- h+=tile("clima","s3 r1","Viento a 100 m",n?`<div class="ctr">${gauge(n.v,170)}<div class="gv">${n.v.toFixed(1)}<small> m/s</small></div><div class="gs"><span class="lv" style="background:${LV[l][1]}">${["OK","Precaución","ALARMA"][l]}</span> ${dirName(n.d)} ${wxIcon(n.code)} ${Math.round(n.t)}°</div></div>`:`<div class="ctr sub">${esc(WXerr||"Cargando clima…")}</div>`,"setTab('nov')");
+ h+=tile("clima","s3 r1"+(n?"":" nowx"),"Viento a 100 m",n?`<div class="ctr">${gauge(n.v,170)}<div class="gv">${n.v.toFixed(1)}<small> m/s</small></div><div class="gs"><span class="lv" style="background:${LV[l][1]}">${["OK","Precaución","ALARMA"][l]}</span> ${dirName(n.d)} ${wxIcon(n.code)} ${Math.round(n.t)}°</div></div>`:`<div class="ctr sub">${esc(WXerr||"Cargando clima…")}</div>`,"setTab('nov')");
+ const R=recos().slice(0,6),none=S.filter((nm,i)=>sp(i+1)==0);
+ h+=tile("rec","s12 r0","Alertas y recomendaciones",`<div class="al">${R.map(([e,tx])=>`<span class="${/⛔|⚠️/.test(e)?"bad":""}">${e} ${esc(tx.length>110?tx.slice(0,108)+"…":tx)}</span>`).join("")}${none.length?`<span>🚧 Sin iniciar: ${none.map(esc).join(", ")}</span>`:""}${(!R.length&&!none.length)?`<span>✅ Todo en orden</span>`:""}</div>`,"setTab('nov')");
  h+=tile("pan","s7 r2","Panorama · WTG × sistema",heatTile()+`<div class="sub" style="margin:6px 0 0;font-size:11px">Verde = completo · borde ámbar = observación · número ámbar = WTG con piezas sin reponer · tocá para abrir el Mapa y editar</div>`,"setTab('map')");
  h+=tile("sys","s5 r2","Avance por sistema",hbars(S.map((nm,i)=>{const q=sp(i+1)/NW*100;return [esc(nm),q,100,col(q),Math.round(q)+"%"]})));
  h+=tile("pend","s6 r3","Avance por WTG",wtgCols());
@@ -1009,8 +1013,6 @@ function vRes(){
  h+=tile("cerca","s4 r4","Más cerca de cerrar",L.length?hbars(L.slice(0,6).map(([w,q])=>[`WTG ${pad(w)}`,wp(w)/NS*100,100,col(wp(w)/NS*100),`faltan ${q}`])):`<div class="sub">—</div>`);
  const pend=[];for(let w=1;w<=NW;w++){const q=(NS-wp(w))+pp(w);if(q>0)pend.push([w,q])}pend.sort((x,y)=>y[1]-x[1]||x[0]-y[0]);
  h+=tile("pend","s4 r4","WTG con más pendientes",pend.length?hbars(pend.slice(0,6).map(([w,q])=>[`WTG ${pad(w)}`,q,NS,q>NS*.6?"var(--er)":"var(--nt)",q])):`<div class="sub">—</div>`);
- const R=recos().slice(0,6),none=S.filter((nm,i)=>sp(i+1)==0);
- h+=tile("rec","s12 r0","Alertas y recomendaciones",`<div class="al">${R.map(([e,tx])=>`<span class="${/⛔|⚠️/.test(e)?"bad":""}">${e} ${esc(tx.length>110?tx.slice(0,108)+"…":tx)}</span>`).join("")}${none.length?`<span>🚧 Sin iniciar: ${none.map(esc).join(", ")}</span>`:""}${(!R.length&&!none.length)?`<span>✅ Todo en orden</span>`:""}</div>`,"setTab('nov')");
  return h+`</div>`}
 function vNov(){
  cardsRes();cardsNov();
@@ -1817,7 +1819,7 @@ window.render=function(keep){
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
  if(tab=="tsa"&&!isGlote())tab="wtg";
- $("tabs").innerHTML=[["res","📊 Resumen"],["nov","📰 Novedades"],["map","🗺️ Pizarra"],["mapa","🗺️ Mapa"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["pie","🔧 Piezas"],["act","📝 Acta"],["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
  if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
  if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
