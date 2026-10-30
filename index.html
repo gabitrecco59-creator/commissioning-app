@@ -276,7 +276,7 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .cgcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px}
 .cgcc{display:flex;flex-direction:column;padding:5px 8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);font-size:10.5px;color:var(--mu);line-height:1.3}.cgcc b{font-size:13px;color:var(--tx)}
 .cgleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mu);margin-top:2px}.cgleg i{display:inline-block;width:12px;height:4px;border-radius:3px;margin-right:5px;vertical-align:middle}
-.cgsc{overflow-x:auto}.cgch svg{max-height:230px}
+.cgch svg{max-height:none}.cgleg i{height:11px!important;width:11px!important}
 .cgline{stroke-dasharray:1;stroke-dashoffset:1;animation:cgDraw 1.4s cubic-bezier(.2,.7,.2,1) forwards}
 @keyframes cgDraw{to{stroke-dashoffset:0}}
 .cgarea{animation:cgFade 1.2s ease both}.cgdot{animation:cgFade .5s ease both}
@@ -620,26 +620,22 @@ function cgStats(){
   if(isEv)cgNoV(c).forEach(w=>{if(!(w in nov))return;nov[w]++;novT++;if(!rv.has(w)){pen[w]++;alerts.push({id:c.id,w,ts:c.ts})}})});
  return {aff,nov,pen,alerts,ev,pr,novT,affT};
 }
+let cgAll=false;
 function cgChart(){
  const st=cgStats(),pend=new Set(st.alerts.map(a=>a.w));
- const rows=Array.from({length:NW},(_,i)=>i+1).map(w=>({w,c:st.aff[w],n:st.nov[w]})).filter(r=>r.c>0).sort((a,b)=>b.c-a.c||b.n-a.n||a.w-b.w);
- if(!rows.length)return `<div class="sub">Todavía no hay cortes para graficar. Se grafica, por turbina, cuántos cortes tuvo y cuántas veces <b>no volvió sola</b>.</div>`;
- const n=rows.length,W=Math.max(560,n*26+60),H=200,L=30,R=14,T=18,B=34,mx=Math.max(2,Math.ceil(Math.max(...rows.map(r=>r.c))/2)*2);
- const X=i=>n===1?L+(W-L-R)/2:L+i*(W-L-R)/(n-1),Y=v=>T+(H-T-B)*(1-v/mx);
- const tk=[...new Set([0,1,2,3,4].map(k=>Math.round(mx*k/4)))];
- const grid=tk.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--bd)" stroke-dasharray="3 5"/><text x="${L-7}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--mu)">${v}</text>`).join("");
- const xl=rows.map((r,i)=>`<text x="${X(i)}" y="${H-12}" text-anchor="middle" font-size="10.5" font-weight="${pend.has(r.w)?800:500}" fill="${pend.has(r.w)?"var(--er)":"var(--mu)"}">${pad(r.w)}</text>`).join("");
- const path=a=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
- const cs=rows.map(r=>r.c),ns=rows.map(r=>r.n);
- const area=`${path(cs)} L${X(n-1).toFixed(1)} ${Y(0)} L${X(0).toFixed(1)} ${Y(0)}Z`;
- const dots=(a,col,lab)=>a.map((v,i)=>`<circle class="cgdot" cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4.2" fill="var(--card)" stroke="${col}" stroke-width="2.4" style="animation-delay:${(0.8+i*0.04).toFixed(2)}s"><title>WTG ${pad(rows[i].w)} · C${circOf(rows[i].w)} · ${lab}: ${v}</title></circle>`).join("");
- const vl=(a,col,dy,min)=>a.map((v,i)=>v>=min?`<text x="${X(i).toFixed(1)}" y="${(Y(v)+dy).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${col}">${v}</text>`:"").join("");
- return `<div class="cgsc"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${Math.min(W,n*24+50)}px;height:auto;display:block" role="img" aria-label="Cortes y turbinas que no volvieron solas, por turbina"><defs><linearGradient id="cgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ac)" stop-opacity=".28"/><stop offset="1" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>${grid}${xl}
- <path d="${area}" fill="url(#cgA)" class="cgarea"/>
- <path class="cgline" pathLength="1" d="${path(cs)}" fill="none" stroke="var(--ac)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
- <path class="cgline" pathLength="1" d="${path(ns)}" fill="none" stroke="var(--er)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:.25s"/>
- ${dots(cs,"var(--ac)","Cortes")}${dots(ns,"var(--er)","No volvieron solas")}${vl(cs,"var(--ac)",-9,1)}${vl(ns,"var(--er)",17,1)}</svg></div>
- <div class="cgleg"><span><i style="background:var(--ac)"></i>Cortes por turbina (evento + programado)</span><span><i style="background:var(--er)"></i>Veces que no volvió sola</span><span>Ordenadas de más a menos cortes · en rojo: con alerta sin revisar${n<NW?` · ${NW-n} sin cortes no se muestran`:""}</span></div>`;
+ const evOk={},evNo={},pr={};
+ CG.forEach(c=>{const isEv=c.tipo==="evento",nv=cgNoV(c);(c.wtgs||[]).forEach(w=>{if(!(w in st.aff))return;if(!isEv)pr[w]=(pr[w]||0)+1;else if(!cgDef(c))return;else if(nv.includes(w))evNo[w]=(evNo[w]||0)+1;else evOk[w]=(evOk[w]||0)+1})});
+ const all=Array.from({length:NW},(_,i)=>i+1).map(w=>({w,ok:evOk[w]||0,no:evNo[w]||0,pr:pr[w]||0})).filter(r=>r.ok+r.no+r.pr>0).sort((a,b)=>(b.ok+b.no+b.pr)-(a.ok+a.no+a.pr)||b.no-a.no||a.w-b.w);
+ if(!all.length)return `<div class="sub">Todavía no hay cortes para graficar. Se muestra un ranking de las turbinas con más cortes y cuántas veces <b>no volvieron solas</b>.</div>`;
+ const top=cgAll?all:all.slice(0,12),mx=Math.max(...top.map(r=>r.ok+r.no+r.pr)),W=720,rh=26,H=top.length*rh+10,L=80,R=150,X=v=>L+(W-L-R)*v/mx;
+ const seg=(k,c,r,b0,y)=>r[k]?`<rect x="${X(b0)}" y="${y+2}" width="${Math.max(6,X(b0+r[k])-X(b0)-2)}" height="${rh-8}" rx="4" fill="${c}"/><text x="${(X(b0)+X(b0+r[k]))/2-1}" y="${y+16}" text-anchor="middle" font-size="11" font-weight="700" fill="#06101a">${r[k]}</text>`:"";
+ const g=top.map((r,i)=>{const y=4+i*rh,tot=r.ok+r.no+r.pr,ev=r.ok+r.no;
+  return `<g style="cursor:pointer" onclick="cgFilt(${r.w})"><title>WTG ${pad(r.w)} · C${circOf(r.w)} · ${tot} corte${tot===1?"":"s"}: ${r.ok} volvió sola, ${r.no} no volvió, ${r.pr} programado${pend.has(r.w)?" · ALERTA sin revisar":""}</title>
+  <text x="${L-10}" y="${y+16}" text-anchor="end" font-size="13" font-weight="700" fill="${pend.has(r.w)?"var(--er)":"var(--tx)"}">WTG ${pad(r.w)}</text>
+  ${seg("ok","var(--ok)",r,0,y)}${seg("no","var(--er)",r,r.ok,y)}${seg("pr","var(--g2)",r,r.ok+r.no,y)}
+  <text x="${X(tot)+8}" y="${y+15}" font-size="11.5" fill="var(--mu)">C${circOf(r.w)}${r.no?` · <tspan fill="var(--er)" font-weight="700">${Math.round(100*r.no/ev)}% sin volver</tspan>`:""}</text></g>`}).join("");
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Ranking de turbinas con más cortes y cuántas veces no volvieron solas">${g}</svg>
+ <div class="cgleg"><span><i style="background:var(--ok);border-radius:3px"></i>Volvió sola</span><span><i style="background:var(--er);border-radius:3px"></i>No volvió sola</span><span><i style="background:var(--g2);border-radius:3px"></i>Corte programado</span><span>Tocá una turbina para filtrar el registro · en rojo: alerta sin revisar</span>${all.length>12?`<button class="btn" style="padding:1px 9px;font-size:12px" onclick="cgAll=!cgAll;render(true)">${cgAll?"Ver solo las 12 con más cortes":"Ver las "+all.length+" turbinas"}</button>`:""}</div>`;
 }
 function vCorte(){
  const s=cgStats(),fw=cgFw;
@@ -665,7 +661,7 @@ function vCorte(){
  return `<div class="card cghd"><div class="cght"><h2 style="margin:0">⚡ Corte de grid</h2><div class="sub" style="margin:0">Cortes, circuitos/turbinas afectados y cuáles volvieron solas</div></div>
  <div class="cgks">${kp(CG.length,"cortes · "+s.ev+" evento"+(s.ev===1?"":"s")+" / "+s.pr+" prog.")}${kp(s.affT,"afectaciones")}${kp(s.novT,"no volvieron","var(--er)")}${kp(aw.length,"para revisar",aw.length?"var(--nt)":"var(--ok)")}</div>
  <button class="btn pri" onclick="cgNew()">➕ Registrar corte</button></div>
- <div class="cgmain${two?"":" one"}">${two?`<div class="cgcol">${ud}${al}</div>`:""}<div class="card cgch"><h2>📈 Cortes por turbina y las que no volvieron solas</h2>${cgChart()}</div></div>
+ <div class="cgmain${two?"":" one"}">${two?`<div class="cgcol">${ud}${al}</div>`:""}<div class="card cgch"><h2>📊 Turbinas con más cortes · cuántas no volvieron solas</h2>${cgChart()}</div></div>
  <div class="cgmid"><div class="card"><h2>🌀 Por turbina${fw?` · WTG ${pad(fw)} <button class="btn" style="padding:1px 8px" onclick="cgFilt(0)">✕ quitar filtro</button>`:""}</h2><div class="cgw">${tiles}</div></div>
  <div class="card"><h2>🔌 Por circuito</h2><div class="cgcs">${cs}</div></div></div>
  <h2 style="margin:10px 2px 6px">🕘 Registro de cortes${fw?` · WTG ${pad(fw)}`:""}</h2><div class="cglogs">${log}</div>`;
