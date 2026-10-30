@@ -251,11 +251,12 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
 /* ===== Ventanas flotantes ===== */
-.fw{position:fixed;left:16px;bottom:16px;width:min(620px,calc(100vw - 32px));height:min(620px,calc(100dvh - 110px));display:none;flex-direction:column;z-index:790;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:10px 12px;box-shadow:0 24px 60px -12px rgba(0,0,0,.55)}
-.fw[data-k="mapa"]{width:min(900px,calc(100vw - 32px))}.fw.max{left:8px;right:8px;top:8px;bottom:8px;width:auto;height:auto}
+.fw{position:fixed;inset:0;margin:auto;width:min(720px,calc(100vw - 32px));height:min(80dvh,700px);display:none;flex-direction:column;z-index:790;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:10px 12px;box-shadow:0 30px 80px -10px rgba(0,0,0,.65)}
+.fw[data-k="mapa"]{width:min(1100px,calc(100vw - 32px));height:min(86dvh,820px)}.fw.max{inset:8px;margin:0;width:auto!important;height:auto!important}
+.fwbk{position:fixed;inset:0;z-index:780;display:none;background:rgba(5,10,24,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}body.fwopen{overflow:hidden}
 .fwb{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}.fwb>.card:first-child{margin-top:0}
 .fw .chhd .btn{padding:3px 10px}.fwbtn.on{outline:2px solid var(--g1)}
-@media(max-width:700px){.fw{left:6px;right:6px;bottom:6px;width:auto!important;height:min(88dvh,720px)}}
+@media(max-width:700px){.fw,.fw[data-k="mapa"]{width:calc(100vw - 12px)!important;height:min(90dvh,760px)}}
 /* ===== Chat ===== */
 .chl{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow-y:auto;padding:4px 2px;margin-bottom:8px;overscroll-behavior:contain}
 .chbd{display:none;background:var(--er);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:0 6px;margin-left:5px;line-height:16px}#chb.on{outline:2px solid var(--g1)}
@@ -1870,10 +1871,10 @@ window.setTab=k=>{if(k==="nov"||k==="mapa"||k==="his"){if(FW!==k)fwOpen(k);retur
 /* ---------- Ventanas flotantes: Novedades, Mapa e Historial ---------- */
 let FW="",FWmax=false;
 const FWT={nov:"📰 Novedades",mapa:"🗺️ Mapa",his:"🕘 Historial"};
-function fwBuild(){if($("fw"))return;document.body.insertAdjacentHTML("beforeend",`<div id="fw" class="fw" role="dialog" aria-label="Ventana"><div class="chhd"><b id="fwt"></b><span style="flex:1"></span><button class="btn" onclick="fwRep()" title="Reporte de esta hoja">📄</button><button class="btn" onclick="fwMax()" title="Agrandar / achicar" id="fwmx">⤢</button><button class="btn" onclick="fwClose()" title="Cerrar" aria-label="Cerrar">✕</button></div><div id="fwb" class="fwb"></div></div>`)}
+function fwBuild(){if($("fw"))return;document.body.insertAdjacentHTML("beforeend",`<div id="fwbk" class="fwbk" onclick="fwClose()"></div><div id="fw" class="fw" role="dialog" aria-label="Ventana"><div class="chhd"><b id="fwt"></b><span style="flex:1"></span><button class="btn" onclick="fwRep()" title="Reporte de esta hoja">📄</button><button class="btn" onclick="fwMax()" title="Agrandar / achicar" id="fwmx">⤢</button><button class="btn" onclick="fwClose()" title="Cerrar" aria-label="Cerrar">✕</button></div><div id="fwb" class="fwb"></div></div>`)}
 function fwMark(){document.querySelectorAll(".fwbtn").forEach(b=>b.classList.toggle("on",b.dataset.k===FW))}
-window.fwOpen=k=>{fwBuild();if(FW===k){fwClose();return}if(innerWidth<700&&CHopen)chToggle();FW=k;const w=$("fw");w.style.display="flex";w.dataset.k=k;$("fwt").textContent=FWT[k];fwMark();paintFW(false);const b=$("fwb");if(b)b.scrollTop=0};
-window.fwClose=()=>{FW="";const w=$("fw");if(w)w.style.display="none";fwMark();if(MFS){MFS=false;document.body.classList.remove("mapfs")}};
+window.fwOpen=k=>{fwBuild();if(FW===k){fwClose();return}if(innerWidth<700&&CHopen)chToggle();FW=k;const w=$("fw");w.style.display="flex";$("fwbk").style.display="block";document.body.classList.add("fwopen");w.dataset.k=k;$("fwt").textContent=FWT[k];fwMark();paintFW(false);const b=$("fwb");if(b)b.scrollTop=0};
+window.fwClose=()=>{FW="";const w=$("fw");if(w)w.style.display="none";const k=$("fwbk");if(k)k.style.display="none";document.body.classList.remove("fwopen");fwMark();if(MFS){MFS=false;document.body.classList.remove("mapfs")}};
 window.fwMax=()=>{FWmax=!FWmax;$("fw").classList.toggle("max",FWmax);if(FW==="mapa")mapFit()};
 window.fwRep=()=>{if(FW)openDayRep(FW)};
 function paintFW(keep){const w=$("fwb");if(!FW||!w)return;const real=tab;tab=FW;
