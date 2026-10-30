@@ -276,7 +276,20 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .cgcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px}
 .cgcc{display:flex;flex-direction:column;padding:5px 8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);font-size:10.5px;color:var(--mu);line-height:1.3}.cgcc b{font-size:13px;color:var(--tx)}
 .cgleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mu);margin-top:2px}.cgleg i{display:inline-block;width:12px;height:4px;border-radius:3px;margin-right:5px;vertical-align:middle}
-.cgch svg{max-height:none}.cgleg i{height:11px!important;width:11px!important}
+.cgrks{display:flex;flex-direction:column;gap:3px}
+.cgrk{display:grid;grid-template-columns:20px 54px 1fr auto;align-items:center;gap:8px;cursor:pointer;padding:1px 0}
+.cgrk b{font-size:12.5px}.cgrk.wr b{color:var(--er)}.cgrk:hover b{color:var(--ac)}
+.cgm{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--pe);color:var(--mu)}
+.cgm.m1{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#2b1a00}.cgm.m2{background:linear-gradient(135deg,#e5e7eb,#9ca3af);color:#111}.cgm.m3{background:linear-gradient(135deg,#fdba74,#c2410c);color:#2b1000}
+.cgtr{height:17px;border-radius:99px;background:var(--pe);padding:2px;overflow:hidden}
+.cgfl{display:flex;gap:2px;height:100%}
+.cgs{display:grid;place-items:center;font-size:10px;font-weight:800;color:#06101a;border-radius:99px;min-width:16px;line-height:1}
+.cgs.ok{background:linear-gradient(90deg,#16a34a,#4ade80);box-shadow:0 0 8px -2px #22c55e}
+.cgs.no{background:linear-gradient(90deg,#f43f5e,#fb923c);box-shadow:0 0 8px -2px #f87171}
+.cgs.pr{background:linear-gradient(90deg,#8b5cf6,#c4b5fd);box-shadow:0 0 8px -2px #a78bfa}
+.cgpl{font-size:11px;color:var(--mu);white-space:nowrap;min-width:92px;text-align:right}
+.cgpl em{font-style:normal;font-weight:800;color:var(--er);background:color-mix(in srgb,var(--er) 14%,transparent);padding:1px 6px;border-radius:99px}
+.cgleg i{height:9px!important;width:9px!important;border-radius:50%!important}.cgleg i.ok{background:var(--ok)}.cgleg i.no{background:var(--er)}.cgleg i.pr{background:var(--g2)}
 .cgline{stroke-dasharray:1;stroke-dashoffset:1;animation:cgDraw 1.4s cubic-bezier(.2,.7,.2,1) forwards}
 @keyframes cgDraw{to{stroke-dashoffset:0}}
 .cgarea{animation:cgFade 1.2s ease both}.cgdot{animation:cgFade .5s ease both}
@@ -627,15 +640,11 @@ function cgChart(){
  CG.forEach(c=>{const isEv=c.tipo==="evento",nv=cgNoV(c);(c.wtgs||[]).forEach(w=>{if(!(w in st.aff))return;if(!isEv)pr[w]=(pr[w]||0)+1;else if(!cgDef(c))return;else if(nv.includes(w))evNo[w]=(evNo[w]||0)+1;else evOk[w]=(evOk[w]||0)+1})});
  const all=Array.from({length:NW},(_,i)=>i+1).map(w=>({w,ok:evOk[w]||0,no:evNo[w]||0,pr:pr[w]||0})).filter(r=>r.ok+r.no+r.pr>0).sort((a,b)=>(b.ok+b.no+b.pr)-(a.ok+a.no+a.pr)||b.no-a.no||a.w-b.w);
  if(!all.length)return `<div class="sub">Todavía no hay cortes para graficar. Se muestra un ranking de las turbinas con más cortes y cuántas veces <b>no volvieron solas</b>.</div>`;
- const top=cgAll?all:all.slice(0,12),mx=Math.max(...top.map(r=>r.ok+r.no+r.pr)),W=720,rh=26,H=top.length*rh+10,L=80,R=150,X=v=>L+(W-L-R)*v/mx;
- const seg=(k,c,r,b0,y)=>r[k]?`<rect x="${X(b0)}" y="${y+2}" width="${Math.max(6,X(b0+r[k])-X(b0)-2)}" height="${rh-8}" rx="4" fill="${c}"/><text x="${(X(b0)+X(b0+r[k]))/2-1}" y="${y+16}" text-anchor="middle" font-size="11" font-weight="700" fill="#06101a">${r[k]}</text>`:"";
- const g=top.map((r,i)=>{const y=4+i*rh,tot=r.ok+r.no+r.pr,ev=r.ok+r.no;
-  return `<g style="cursor:pointer" onclick="cgFilt(${r.w})"><title>WTG ${pad(r.w)} · C${circOf(r.w)} · ${tot} corte${tot===1?"":"s"}: ${r.ok} volvió sola, ${r.no} no volvió, ${r.pr} programado${pend.has(r.w)?" · ALERTA sin revisar":""}</title>
-  <text x="${L-10}" y="${y+16}" text-anchor="end" font-size="13" font-weight="700" fill="${pend.has(r.w)?"var(--er)":"var(--tx)"}">WTG ${pad(r.w)}</text>
-  ${seg("ok","var(--ok)",r,0,y)}${seg("no","var(--er)",r,r.ok,y)}${seg("pr","var(--g2)",r,r.ok+r.no,y)}
-  <text x="${X(tot)+8}" y="${y+15}" font-size="11.5" fill="var(--mu)">C${circOf(r.w)}${r.no?` · <tspan fill="var(--er)" font-weight="700">${Math.round(100*r.no/ev)}% sin volver</tspan>`:""}</text></g>`}).join("");
- return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Ranking de turbinas con más cortes y cuántas veces no volvieron solas">${g}</svg>
- <div class="cgleg"><span><i style="background:var(--ok);border-radius:3px"></i>Volvió sola</span><span><i style="background:var(--er);border-radius:3px"></i>No volvió sola</span><span><i style="background:var(--g2);border-radius:3px"></i>Corte programado</span><span>Tocá una turbina para filtrar el registro · en rojo: alerta sin revisar</span>${all.length>12?`<button class="btn" style="padding:1px 9px;font-size:12px" onclick="cgAll=!cgAll;render(true)">${cgAll?"Ver solo las 12 con más cortes":"Ver las "+all.length+" turbinas"}</button>`:""}</div>`;
+ const N=8,top=cgAll?all:all.slice(0,N),mx=Math.max(...all.map(r=>r.ok+r.no+r.pr));
+ const sp=(k,r)=>r[k]?`<span class="cgs ${k}" style="flex:${r[k]}">${r[k]}</span>`:"";
+ const rows=top.map((r,i)=>{const t=r.ok+r.no+r.pr,ev=r.ok+r.no,tt=`WTG ${pad(r.w)} · C${circOf(r.w)} · ${t} corte${t===1?"":"s"}: ${r.ok} volvió sola, ${r.no} no volvió, ${r.pr} programado${pend.has(r.w)?" · ALERTA sin revisar":""}`;
+  return `<div class="cgrk${pend.has(r.w)?" wr":""}" onclick="cgFilt(${r.w})" title="${tt}"><span class="cgm m${i<3?i+1:0}">${i+1}</span><b>WTG ${pad(r.w)}</b><div class="cgtr"><div class="cgfl" style="width:${Math.max(8,100*t/mx)}%">${sp("ok",r)}${sp("no",r)}${sp("pr",r)}</div></div><span class="cgpl">C${circOf(r.w)}${r.no?` <em>${Math.round(100*r.no/ev)}% sin volver</em>`:""}</span></div>`}).join("");
+ return `<div class="cgrks">${rows}</div><div class="cgleg"><span><i class="ok"></i>Volvió sola</span><span><i class="no"></i>No volvió sola</span><span><i class="pr"></i>Programado</span><span>Tocá una turbina para filtrar el registro</span>${all.length>N?`<button class="btn" style="padding:1px 9px;font-size:12px" onclick="cgAll=!cgAll;render(true)">${cgAll?"Ver solo las "+N+" con más cortes":"Ver las "+all.length+" turbinas"}</button>`:""}</div>`;
 }
 function vCorte(){
  const s=cgStats(),fw=cgFw;
