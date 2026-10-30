@@ -251,35 +251,46 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
 /* ===== Corte de grid ===== */
-.cghd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.cgk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
-.cgk .kpi{padding:14px}.cgk .kpi b{font-size:32px;display:block}
+.cghd{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin-bottom:10px}
+.cght{flex:1 1 220px;min-width:0}.cght h2{font-size:16px}.cght .sub{font-size:12px}
+.cgks{display:flex;gap:8px;flex-wrap:wrap;flex:2 1 360px}
+.cgkp{display:flex;align-items:baseline;gap:6px;padding:4px 12px;border-radius:12px;border:1px solid var(--bd);background:var(--bg)}
+.cgkp b{font-size:22px;line-height:1.1;background:linear-gradient(90deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums}
+.cgkp span{font-size:11px;color:var(--mu);line-height:1.2}
+.cgmain{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:0}
+.cgmain .card,.cgmid .card{margin-bottom:10px;padding:10px 12px}
+.cgmain h2,.cgmid h2{font-size:13px;margin:0 0 6px}
+.cgcol{display:flex;flex-direction:column}
+@media (min-width:1000px){.cgmain:not(.one){grid-template-columns:minmax(300px,5fr) 7fr;align-items:start}.cgmid{display:grid;grid-template-columns:1fr 250px;gap:10px;align-items:start}.cglogs{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:0 10px}}
 .cgal{border-color:var(--er)!important}.cgal h2{color:var(--er)}
-.cgrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--bd)}
-.cgrow:first-of-type{border-top:0}
-.cgw{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
-.cgt{display:flex;flex-direction:column;gap:2px;text-align:left;padding:9px 10px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s}
+.cgag{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+.cga2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg)}
+.cga2 .sub{margin:1px 0 0;font-size:11px}.cga2 .btn{padding:4px 8px;font-size:12px;white-space:nowrap}
+.cgw{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.cgt{display:flex;flex-direction:column;gap:0;text-align:left;padding:6px 8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;font-size:13px;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s}
 .cgt:hover{transform:translateY(-2px);border-color:var(--ac)}.cgt.sel{border-color:var(--ac);box-shadow:0 0 0 2px color-mix(in srgb,var(--ac) 35%,transparent)}
 .cgt.cga{border-color:var(--er);background:color-mix(in srgb,var(--er) 9%,var(--bg))}
 .cgt.cga b::after{content:" ⚠";color:var(--er)}
-.cgn{font-size:11px;color:var(--mu)}
-.cgb{display:block;height:5px;border-radius:4px;background:var(--pe);overflow:hidden;margin-top:5px}.cgb u{display:block;height:100%;background:var(--er);border-radius:4px;transition:width .8s}
-.cgcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.cgcc{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);font-size:12px;color:var(--mu)}.cgcc b{font-size:15px;color:var(--tx)}
-.cgleg{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-top:6px}.cgleg i{display:inline-block;width:14px;height:4px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.cgn{font-size:10.5px;color:var(--mu);line-height:1.3}
+.cgb{display:block;height:3px;border-radius:3px;background:var(--pe);overflow:hidden;margin-top:3px}.cgb u{display:block;height:100%;background:var(--er);border-radius:3px;transition:width .8s}
+.cgcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px}
+.cgcc{display:flex;flex-direction:column;padding:5px 8px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);font-size:10.5px;color:var(--mu);line-height:1.3}.cgcc b{font-size:13px;color:var(--tx)}
+.cgleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mu);margin-top:2px}.cgleg i{display:inline-block;width:12px;height:4px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.cgch svg{max-height:210px}
 .cgline{stroke-dasharray:1;stroke-dashoffset:1;animation:cgDraw 1.4s cubic-bezier(.2,.7,.2,1) forwards}
 @keyframes cgDraw{to{stroke-dashoffset:0}}
 .cgarea{animation:cgFade 1.2s ease both}.cgdot{animation:cgFade .5s ease both}
 @keyframes cgFade{from{opacity:0}to{opacity:1}}
-.cgh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cglog{padding:8px 12px;margin-bottom:8px}
+.cgh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cgb2{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;color:#fff}.cgb2.ev{background:var(--er)}.cgb2.pr{background:var(--ac)}
-.cgchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.cgw2{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid var(--bd)}
+.cgchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}
+.cgw2{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--bd)}
 .cgw2.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,var(--bd));background:color-mix(in srgb,var(--ok) 10%,transparent)}
 .cgw2.no{color:var(--er);border-color:var(--er);background:color-mix(in srgb,var(--er) 12%,transparent);cursor:pointer}
 .cgw2.rv{color:var(--nt);border-color:var(--nt);background:color-mix(in srgb,var(--nt) 12%,transparent);cursor:pointer}
 .cgw2.un{color:var(--mu);background:var(--bg)}
-.cgact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cgact{display:flex;gap:5px;margin-left:auto}.cgact .btn{padding:3px 9px;font-size:12px}
 .cgud{border-color:var(--nt)!important}.cgud h2{color:var(--nt)}
 .cgseg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;margin:8px 0 10px}
 .cgseg button{flex:1;border:0;background:none;color:var(--mu);padding:10px;border-radius:9px;font:700 14px inherit;font-family:inherit;cursor:pointer}
@@ -613,11 +624,11 @@ function cgChart(){
  const ev=CG.filter(c=>c.tipo==="evento").slice().reverse();
  if(!ev.length)return `<div class="sub">Todavía no hay eventos para graficar. Se grafica cuántas turbinas <b>no volvieron solas</b> en cada evento y el acumulado.</div>`;
  const vals=ev.map(c=>cgNoV(c).length);let acc=0;const cum=vals.map(v=>acc+=v);
- const W=640,H=240,L=34,R=16,T=16,B=36,mx=Math.max(4,Math.ceil(Math.max(...cum)/4)*4),n=ev.length;
+ const W=640,H=190,L=30,R=14,T=12,B=30,mx=Math.max(4,Math.ceil(Math.max(...cum)/4)*4),n=ev.length;
  const X=i=>n===1?L+(W-L-R)/2:L+i*(W-L-R)/(n-1),Y=v=>T+(H-T-B)*(1-v/mx);
  const tk=[...new Set([0,1,2,3,4].map(k=>Math.round(mx*k/4)))];
  const grid=tk.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--bd)" stroke-dasharray="3 5"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--mu)">${v}</text>`).join("");
- const st=Math.ceil(n/8),xl=ev.map((c,i)=>i%st===0||i===n-1?`<text x="${X(i)}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--mu)">${cgDay(c.ts)}</text>`:"").join("");
+ const st=Math.ceil(n/8),xl=ev.map((c,i)=>i%st===0||i===n-1?`<text x="${X(i)}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--mu)">${cgDay(c.ts)}</text>`:"").join("");
  const path=a=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
  const area=`${path(cum)} L${X(n-1).toFixed(1)} ${Y(0)} L${X(0).toFixed(1)} ${Y(0)}Z`;
  const dots=(a,col,lab)=>a.map((v,i)=>`<circle class="cgdot" cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4.5" fill="var(--card)" stroke="${col}" stroke-width="2.5" style="animation-delay:${(0.9+i*0.05).toFixed(2)}s"><title>${lab}: ${v} · ${cgDate(ev[i].ts)}</title></circle>`).join("");
@@ -630,30 +641,32 @@ function cgChart(){
 }
 function vCorte(){
  const s=cgStats(),fw=cgFw;
- const kp=(n,l,c)=>`<div class="kpi"><b${c?` style="-webkit-text-fill-color:${c};color:${c};background:none"`:""}>${n}</b><div class="sub" style="margin:2px 0 0">${l}</div></div>`;
  const pw={};s.alerts.forEach(a=>{(pw[a.w]=pw[a.w]||[]).push(a)});
  const aw=Object.keys(pw).map(Number).sort((a,b)=>pw[b].length-pw[a].length||a-b);
  const und=CG.filter(c=>c.tipo==="evento"&&!cgDef(c));
- const ud=und.length?`<div class="card cgud"><h2>🕓 Eventos sin definir cuáles turbinas no volvieron (${und.length})</h2>${und.map(c=>`<div class="cgrow"><div><b>${cgDate(c.ts)}</b> <span class="sub" style="display:inline">· ${(c.circ||[]).map(x=>"C"+x).join(" ")} · ${(c.wtgs||[]).length} turbinas</span></div><button class="btn pri" onclick="cgRet('${c.id}')">Definir cuáles no volvieron</button></div>`).join("")}</div>`:"";
- const al=aw.length?`<div class="card cgal"><h2>⚠️ Turbinas que no volvieron solas · para revisar (${aw.length})</h2>${aw.map(w=>{const l=pw[w],last=Math.max(...l.map(x=>x.ts));return `<div class="cgrow"><div><b>WTG ${pad(w)}</b> <span class="sub" style="display:inline">· C${circOf(w)}</span><div class="sub" style="margin:2px 0 0">No volvió sola en <b>${l.length}</b> evento${l.length>1?"s":""} sin revisar · último ${cgDate(last)}</div></div><button class="btn" onclick="cgRevW(${w})">✔ Marcada como revisada</button></div>`}).join("")}</div>`
-  :(CG.length?`<div class="card" style="border-color:var(--ok)"><span style="color:var(--ok);font-weight:700">✔ Sin alertas: todas las turbinas que no volvieron solas ya fueron revisadas.</span></div>`:"");
+ const kp=(n,l,c)=>`<div class="cgkp"><b${c?` style="-webkit-text-fill-color:${c};color:${c};background:none"`:""}>${n}</b><span>${l}</span></div>`;
+ const ud=und.length?`<div class="card cgud"><h2>🕓 Sin definir cuáles no volvieron (${und.length})</h2><div class="cgag">${und.map(c=>`<div class="cga2"><div><b>${cgDate(c.ts)}</b><div class="sub">${(c.circ||[]).map(x=>"C"+x).join(" ")} · ${(c.wtgs||[]).length} turbinas</div></div><button class="btn pri" onclick="cgRet('${c.id}')">Definir</button></div>`).join("")}</div></div>`:"";
+ const al=aw.length?`<div class="card cgal"><h2>⚠️ No volvieron solas · para revisar (${aw.length})</h2><div class="cgag">${aw.map(w=>{const l=pw[w],last=Math.max(...l.map(x=>x.ts));return `<div class="cga2"><div><b>WTG ${pad(w)}</b> <span class="sub" style="display:inline">· C${circOf(w)}</span><div class="sub">${l.length} evento${l.length>1?"s":""} sin revisar · últ. ${cgDate(last)}</div></div><button class="btn" title="Marcada como revisada" onclick="cgRevW(${w})">✔ Revisada</button></div>`}).join("")}</div></div>`
+  :(CG.length&&!und.length?`<div class="card" style="border-color:var(--ok)"><span style="color:var(--ok);font-weight:700">✔ Sin alertas: todas las turbinas que no volvieron solas ya fueron revisadas.</span></div>`:"");
  const tiles=Array.from({length:NW},(_,i)=>i+1).map(w=>{const a=s.aff[w],n=s.nov[w],p=s.pen[w];
-  return `<button class="cgt${p?" cga":""}${fw===w?" sel":""}" onclick="cgFilt(${w})"><b>WTG ${pad(w)}</b><span class="sub" style="margin:0">C${circOf(w)}</span><span class="cgn">${a} corte${a===1?"":"s"}</span><span class="cgn" style="color:${n?"var(--er)":"var(--mu)"}">${n?"⚠ "+n+" no volvió":"vuelve sola"}</span><i class="cgb"><u style="width:${a?Math.round(100*n/a):0}%"></u></i></button>`}).join("");
+  return `<button class="cgt${p?" cga":""}${fw===w?" sel":""}" onclick="cgFilt(${w})"><b>WTG ${pad(w)}</b><span class="cgn">C${circOf(w)} · ${a} corte${a===1?"":"s"}</span><span class="cgn" style="color:${n?"var(--er)":"var(--mu)"}">${n?"⚠ "+n+" no volvió":"vuelve sola"}</span><i class="cgb"><u style="width:${a?Math.round(100*n/a):0}%"></u></i></button>`}).join("");
  const cs=Object.keys(CIRC).map(Number).sort((a,b)=>a-b).map(c=>{const k=CG.filter(x=>(x.wtgs||[]).some(w=>CIRC[c].includes(w))).length,nv=CG.filter(x=>x.tipo==="evento"&&cgNoV(x).some(w=>CIRC[c].includes(w))).length;
-  return `<div class="cgcc"><b>C${c}</b><span>${k} corte${k===1?"":"s"}</span><span style="color:${nv?"var(--er)":"var(--mu)"}">${nv} con WTG sin volver</span></div>`}).join("");
+  return `<div class="cgcc"><b>C${c}</b><span>${k} corte${k===1?"":"s"}</span><span style="color:${nv?"var(--er)":"var(--mu)"}">${nv} sin volver</span></div>`}).join("");
  const list=CG.filter(c=>!fw||(c.wtgs||[]).includes(fw));
- const log=list.map(c=>{const nv=cgNoV(c),rv=c.revisadas||[],isEv=c.tipo==="evento";
-  return `<div class="card cglog"><div class="cgh"><span class="cgb2 ${isEv?"ev":"pr"}">${isEv?"⚡ EVENTO":"🗓 PROGRAMADO"}</span><b>${cgDate(c.ts)}</b><span class="sub" style="margin:0">${(c.circ||[]).map(x=>"C"+x).join(" · ")}</span><span class="sub" style="margin:0 0 0 auto">${esc(c.byName||"")}${c.pending?" ⏳":""}</span></div>
-  <div class="cgchips">${(c.wtgs||[]).map(w=>{const un=isEv&&!cgDef(c),back=!nv.includes(w),rev=rv.includes(w);if(un)return `<span class="cgw2 un">${pad(w)}</span>`;return `<span class="cgw2 ${back?"ok":rev?"rv":"no"}" ${!back&&isEv?`onclick="cgRev('${c.id}',${w})" title="${rev?"Revisada · tocá para desmarcar":"No volvió sola · tocá para marcar revisada"}"`:""}>${pad(w)} ${back?"↺":rev?"✔":"⚠"}</span>`}).join("")}</div>
-  <div class="sub" style="margin:6px 0 0">${isEv&&!cgDef(c)?`🕓 <b>Falta definir cuáles no volvieron solas</b> · ${(c.wtgs||[]).length} turbinas`:isEv?(nv.length?`<b style="color:var(--er)">${nv.length} no volvió sola</b> · ${(c.wtgs||[]).length-nv.length} volvieron solas`:`✔ Todas volvieron solas (${(c.wtgs||[]).length})`):`${(c.wtgs||[]).length} turbinas · corte programado`}${c.nota?` · ${esc(c.nota)}`:""}${c.editedByName?` · ✏️ editado por ${esc(c.editedByName)}`:""}</div>
-  <div class="cgact">${isEv?`<button class="btn${cgDef(c)?"":" pri"}" onclick="cgRet('${c.id}')">${cgDef(c)?"↺ Cambiar cuáles no volvieron":"Definir cuáles no volvieron"}</button>`:""}<button class="btn" onclick="cgEdit('${c.id}')">✏️ Editar</button><button class="btn dg" onclick="cgDel('${c.id}')">🗑 Borrar</button></div></div>`}).join("")||`<div class="card sub">Todavía no hay cortes registrados${fw?" para la WTG "+pad(fw):""}.</div>`;
- return `<div class="card cghd"><div><h2 style="margin:0">⚡ Corte de grid</h2><div class="sub" style="margin:2px 0 0">Registrá cada corte, qué circuitos y turbinas afectó y cuáles volvieron solas.</div></div><button class="btn pri" onclick="cgNew()">➕ Registrar corte</button></div>
- <div class="cgk">${kp(CG.length,"cortes registrados · "+s.ev+" evento"+(s.ev===1?"":"s")+" / "+s.pr+" programado"+(s.pr===1?"":"s"))}${kp(s.affT,"afectaciones de turbinas")}${kp(s.novT,"no volvieron solas","var(--er)")}${kp(aw.length,"WTG para revisar",aw.length?"var(--nt)":"var(--ok)")}</div>
- ${ud}${al}
- <div class="card"><h2>📈 Turbinas que no volvieron solas</h2>${cgChart()}<div class="sub" style="margin:6px 0 0">Solo cuentan los cortes tipo <b>evento</b>. Los programados se registran pero no generan alerta.</div></div>
- <div class="card"><h2>🌀 Por turbina${fw?` · filtrando WTG ${pad(fw)} <button class="btn" style="padding:2px 8px" onclick="cgFilt(0)">✕ quitar filtro</button>`:""}</h2><div class="cgw">${tiles}</div></div>
- <div class="card"><h2>🔌 Por circuito</h2><div class="cgcs">${cs}</div></div>
- <h2 style="margin:14px 2px 8px">🕘 Registro de cortes${fw?` · WTG ${pad(fw)}`:""}</h2>${log}`;
+ const log=list.map(c=>{const nv=cgNoV(c),rv=c.revisadas||[],isEv=c.tipo==="evento",df=cgDef(c);
+  const chips=(c.wtgs||[]).map(w=>{if(isEv&&!df)return `<span class="cgw2 un">${pad(w)}</span>`;const back=!nv.includes(w),rev=rv.includes(w);return `<span class="cgw2 ${back?"ok":rev?"rv":"no"}" ${!back&&isEv?`onclick="cgRev('${c.id}',${w})" title="${rev?"Revisada · tocá para desmarcar":"No volvió sola · tocá para marcar revisada"}"`:""}>${pad(w)} ${back?"↺":rev?"✔":"⚠"}</span>`}).join("");
+  const sum=isEv&&!df?`🕓 <b>Falta definir cuáles no volvieron</b>`:isEv?(nv.length?`<b style="color:var(--er)">${nv.length} no volvió</b> · ${(c.wtgs||[]).length-nv.length} volvieron`:`✔ Todas volvieron (${(c.wtgs||[]).length})`):`${(c.wtgs||[]).length} turbinas · programado`;
+  return `<div class="card cglog"><div class="cgh"><span class="cgb2 ${isEv?"ev":"pr"}">${isEv?"⚡ EVENTO":"🗓 PROGRAMADO"}</span><b>${cgDate(c.ts)}</b><span class="sub" style="margin:0">${(c.circ||[]).map(x=>"C"+x).join(" · ")}</span><span class="sub" style="margin:0">· ${esc(c.byName||"")}${c.pending?" ⏳":""}${c.editedByName?" · ✏️ "+esc(c.editedByName):""}</span>
+  <span class="cgact">${isEv?`<button class="btn${df?"":" pri"}" onclick="cgRet('${c.id}')" title="${df?"Cambiar cuáles no volvieron":"Definir cuáles no volvieron"}">${df?"↺ Retorno":"Definir retorno"}</button>`:""}<button class="btn" title="Editar" onclick="cgEdit('${c.id}')">✏️</button><button class="btn dg" title="Borrar" onclick="cgDel('${c.id}')">🗑</button></span></div>
+  <div class="cgchips">${chips}<span class="sub" style="margin:0 0 0 4px">${sum}${c.nota?` · ${esc(c.nota)}`:""}</span></div></div>`}).join("")||`<div class="card sub">Todavía no hay cortes registrados${fw?" para la WTG "+pad(fw):""}.</div>`;
+ const two=ud||al;
+ return `<div class="card cghd"><div class="cght"><h2 style="margin:0">⚡ Corte de grid</h2><div class="sub" style="margin:0">Cortes, circuitos/turbinas afectados y cuáles volvieron solas</div></div>
+ <div class="cgks">${kp(CG.length,"cortes · "+s.ev+" evento"+(s.ev===1?"":"s")+" / "+s.pr+" prog.")}${kp(s.affT,"afectaciones")}${kp(s.novT,"no volvieron","var(--er)")}${kp(aw.length,"para revisar",aw.length?"var(--nt)":"var(--ok)")}</div>
+ <button class="btn pri" onclick="cgNew()">➕ Registrar corte</button></div>
+ <div class="cgmain${two?"":" one"}">${two?`<div class="cgcol">${ud}${al}</div>`:""}<div class="card cgch"><h2>📈 Turbinas que no volvieron solas</h2>${cgChart()}<div class="sub" style="margin:4px 0 0">Solo eventos; los programados no generan alerta.</div></div></div>
+ <div class="cgmid"><div class="card"><h2>🌀 Por turbina${fw?` · WTG ${pad(fw)} <button class="btn" style="padding:1px 8px" onclick="cgFilt(0)">✕ quitar filtro</button>`:""}</h2><div class="cgw">${tiles}</div></div>
+ <div class="card"><h2>🔌 Por circuito</h2><div class="cgcs">${cs}</div></div></div>
+ <h2 style="margin:10px 2px 6px">🕘 Registro de cortes${fw?` · WTG ${pad(fw)}`:""}</h2><div class="cglogs">${log}</div>`;
 }
 window.cgFilt=w=>{cgFw=cgFw===w?0:w;render(true)};
 window.cgNew=()=>{if(!canEdit()){if(!NAME)openUser();return}cgD={tipo:"evento",dt:dtLocal(Date.now()),w:[],v:[],nota:"",def:false};cgForm();$("mu").classList.add("wide");$("mu").style.display="flex"};
