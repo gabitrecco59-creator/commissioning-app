@@ -86,8 +86,8 @@ h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;gap:8px}
 .hi{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}
 .hi:last-child{border:0}.hi .t{color:var(--mu);font-size:11px}.hi>div{flex:1}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
-.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--er);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:9;max-width:90vw;display:none}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--er);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:1000;max-width:90vw;display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:900;padding:16px}
 .modal>div{background:var(--card);border-radius:16px;padding:18px;max-width:380px;width:100%}
 .modal input{width:100%;padding:11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;margin:10px 0}
 .modal code{display:block;word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;font-size:12px;margin:6px 0}
@@ -250,6 +250,12 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mseg{display:flex;height:26px;border-radius:13px;overflow:hidden;background:var(--pe)}.mseg i{display:flex;align-items:center;justify-content:center;font:700 12px system-ui;font-style:normal;min-width:6px}
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
+/* ===== Ventanas flotantes ===== */
+.fw{position:fixed;left:16px;bottom:16px;width:min(620px,calc(100vw - 32px));height:min(620px,calc(100dvh - 110px));display:none;flex-direction:column;z-index:790;background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:10px 12px;box-shadow:0 24px 60px -12px rgba(0,0,0,.55)}
+.fw[data-k="mapa"]{width:min(900px,calc(100vw - 32px))}.fw.max{left:8px;right:8px;top:8px;bottom:8px;width:auto;height:auto}
+.fwb{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}.fwb>.card:first-child{margin-top:0}
+.fw .chhd .btn{padding:3px 10px}.fwbtn.on{outline:2px solid var(--g1)}
+@media(max-width:700px){.fw{left:6px;right:6px;bottom:6px;width:auto!important;height:min(88dvh,720px)}}
 /* ===== Chat ===== */
 .chl{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow-y:auto;padding:4px 2px;margin-bottom:8px;overscroll-behavior:contain}
 .chbd{display:none;background:var(--er);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:0 6px;margin-left:5px;line-height:16px}#chb.on{outline:2px solid var(--g1)}
@@ -428,7 +434,7 @@ w.addEventListener("click",close);w.addEventListener("keydown",function(e){if(e.
 setTimeout(close,5200);})();</script>
 <div class="top">
  <div><h1><svg class="wt" viewBox="0 0 40 44" width="34" height="38" aria-hidden="true"><polygon points="19,15 21,15 22.6,42 17.4,42" fill="currentColor" opacity=".85"/><g class="rot"><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(120 20 14)"/><path d="M20 14 L18.7 1.5 Q20 -0.3 21.3 1.5 Z" fill="var(--ac)" transform="rotate(240 20 14)"/></g><circle cx="20" cy="14" r="2.3" fill="currentColor"/></svg> Avance de Commissioning</h1><div class="sub" id="meta">PE Olavarria PCR · EnVentus V162 Mk0C 6.4 MW · 22 WTG × 22 sistemas</div></div>
- <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn" id="chb" onclick="chToggle()" title="Chat de técnicos">💬<span class="chbd" id="chbd"></span></button><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
+ <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill" id="st"><i></i><span>Conectando…</span></span><button class="btn fwbtn" data-k="nov" onclick="fwOpen('nov')" title="Novedades y clima">📰</button><button class="btn fwbtn" data-k="mapa" onclick="fwOpen('mapa')" title="Mapa del parque">🗺️</button><button class="btn fwbtn" data-k="his" onclick="fwOpen('his')" title="Historial">🕘</button><button class="btn" id="chb" onclick="chToggle()" title="Chat de técnicos">💬<span class="chbd" id="chbd"></span></button><button class="btn" id="thm" onclick="toggleTheme()" title="Modo claro / nocturno">🌙</button><button class="btn" id="shr" onclick="shareModal()" title="Compartir e instalar">🔗 Compartir</button><button class="btn" id="usr" onclick="openUser()">👤</button></div>
 </div>
 <div id="banner"></div>
 <div class="tabs" id="tabs"></div>
@@ -769,9 +775,9 @@ function chBadge(){const n=chUnread(),e=$("chbd");if(e){e.textContent=n?String(n
 function chPaint(){const l=$("chlist");if(l&&CHopen){const nb=l.scrollHeight-l.scrollTop-l.clientHeight<90;l.innerHTML=chatList();if(nb)l.scrollTop=l.scrollHeight;chMark()}
  document.title=(chUnread()?"("+chUnread()+") ":"")+"Commissioning PE Olavarría";chBadge()}
 function chBuild(){if($("chw"))return;document.body.insertAdjacentHTML("beforeend",`<div id="chw" class="chw" role="dialog" aria-label="Chat de técnicos"><div class="chhd"><b>💬 Chat de técnicos</b><span class="sub" style="margin:0;flex:1;font-size:11px">aviso con la app abierta</span><button class="btn" onclick="chToggle()" title="Cerrar" aria-label="Cerrar chat">✕</button></div><div id="chlist" class="chl"></div><div class="chf"><textarea id="chtx" rows="2" maxlength="500" placeholder="Escribí un mensaje…" oninput="chDraft=this.value" onkeydown="chKey(event)"></textarea><button class="btn pri" onclick="chSend()">Enviar</button></div></div>`);$("chtx").value=chDraft}
-window.chToggle=()=>{chBuild();CHopen=!CHopen;$("chw").style.display=CHopen?"flex":"none";$("chb").classList.toggle("on",CHopen);
+window.chToggle=()=>{chBuild();CHopen=!CHopen;if(CHopen&&innerWidth<700&&FW)fwClose();$("chw").style.display=CHopen?"flex":"none";$("chb").classList.toggle("on",CHopen);
  if(CHopen){chMark();document.title="Commissioning PE Olavarría";const l=$("chlist");l.innerHTML=chatList();l.scrollTop=l.scrollHeight;chBadge();setTimeout(()=>{const t=$("chtx");if(t)t.focus({preventScroll:true})},60)}}
-addEventListener("keydown",e=>{if(e.key==="Escape"&&CHopen)chToggle()});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!MFS){if(CHopen)chToggle();else if(FW)fwClose()}});
 window.chKey=e=>{if(e.key==="Enter"&&!e.shiftKey&&innerWidth>=700){e.preventDefault();chSend()}};
 window.chSend=()=>{if(!canEdit()){if(!NAME)openUser();return}
  const el=$("chtx"),t=(el?el.value:chDraft).trim();if(!t)return;
@@ -825,7 +831,7 @@ async function loadWx(){
  try{const r=await fetch(WX_URL,{cache:"no-store"});if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.hourly||!j.current)throw new Error("formato");
   WX=j;WXat=Date.now();WXerr="";try{localStorage.setItem("wx2",JSON.stringify({j,at:WXat}))}catch(e){}}
  catch(e){WXerr=WX?"No se pudo actualizar (se muestran los últimos datos).":"No se pudo cargar el clima (sin conexión o bloqueado en esta red)."}
- if(tab==="nov"||WXlvlNow()===2)render(true)}
+ if(FW==="nov"||WXlvlNow()===2)render(true)}
 const DIRS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
 const dirName=d=>DIRS[Math.round(((d%360)+360)%360/22.5)%16];
 const wxIcon=c=>c==null?"❔":c===0?"☀️":c<=2?"🌤️":c===3?"☁️":c<=48?"🌫️":c<=57?"🌦️":c<=67?"🌧️":c<=77?"❄️":c<=82?"🌦️":c<=86?"❄️":"⛈️";
@@ -1176,11 +1182,11 @@ function mapPanel(){
   return g+"</g>";
 }
 let MFS=false;
-window.mapFit=()=>{const b=document.querySelector(".mapbox");if(!b)return;if(MFS){b.style.height="";return}const t=b.getBoundingClientRect().top;b.style.height=Math.max(300,innerHeight-t-14)+"px"};
+window.mapFit=()=>{const b=document.querySelector(".mapbox");if(!b)return;if(MFS){b.style.height="";return}const t=b.getBoundingClientRect().top,pn=b.closest("#fwb");if(pn){b.style.height=Math.max(240,pn.getBoundingClientRect().bottom-t-12)+"px";return}b.style.height=Math.max(300,innerHeight-t-14)+"px"};
 window.mapFs=()=>{MFS=!MFS;document.body.classList.toggle("mapfs",MFS);
  try{if(MFS){const e=document.documentElement;e.requestFullscreen&&e.requestFullscreen().catch(()=>{})}else if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}
  render(true);window.scrollTo(0,0)};
-addEventListener("resize",()=>{if(tab==="mapa")mapFit()});
+addEventListener("resize",()=>{if(FW==="mapa")mapFit()});
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&MFS){MFS=false;document.body.classList.remove("mapfs");render(true)}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&MFS){MFS=false;document.body.classList.remove("mapfs");render(true)}});
 window.mapPend=()=>{MPEND=!MPEND;try{localStorage.setItem("mapPend",MPEND?"1":"0")}catch(e){}render(true)};
@@ -1477,14 +1483,14 @@ ${dab.length?`<h3>⚠️ Daños abiertos (${dab.length})</h3>${li(dab.map(a=>`WT
 <p class="mu" style="margin-top:22px;font-size:9pt">Daños del proyecto: ${dn.length} (${dn.length-dab.length} cerrados, ${dab.length} abiertos).</p></body></html>`}
 /* Botón "Reporte": elegir reporte del día completo o solo la hoja (pestaña) abierta. */
 const TABN={res:"📊 Resumen",nov:"📰 Novedades",map:"🗺️ Pizarra",mapa:"🗺️ Mapa",wtg:"🌀 WTG",tsa:"🔒 Adicionales TSA",pie:"🔧 Piezas",act:"📝 Acta",cg:"⚡ Corte de grid",his:"🕘 Historial"};
-let REPK="dia",REPT="";
-window.openDayRep=()=>{if(REPT!==tab){REPT=tab;if(tab==="cg")REPK="hoja"}const t=new Date(),v=`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`,tn=TABN[tab]||"Hoja actual",sx=tab==="wtg"&&sel?` · WTG ${pad(sel)}`:tab==="tsa"&&tsel?` · WTG ${pad(tsel)}`:"";
+let REPK="dia",REPT="",RTAB=null;
+window.openDayRep=ft=>{if(ft!==undefined)RTAB=ft||null;const tb=RTAB||tab;if(REPT!==tb){REPT=tb;if(tb==="cg")REPK="hoja"}const t=new Date(),v=`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`,tn=TABN[tb]||"Hoja actual",sx=tb==="wtg"&&sel?` · WTG ${pad(sel)}`:tb==="tsa"&&tsel?` · WTG ${pad(tsel)}`:"";
  REPK=REPK==="hoja"?"hoja":"dia";
  const opt=(k,t1,t2)=>`<label style="display:flex;gap:10px;align-items:flex-start;border:2px solid ${REPK===k?"var(--ac)":"var(--bd)"};border-radius:12px;padding:10px;cursor:pointer;margin:6px 0"><input type="radio" name="rk" ${REPK===k?"checked":""} onchange="REPKset('${k}')" style="margin-top:3px"><span><b>${t1}</b><span class="sub" style="display:block;margin:2px 0 0">${t2}</span></span></label>`;
- $("mub").innerHTML=`<h2>📄 Reporte</h2><div class="sub">¿Qué querés descargar?</div>${opt("dia","Reporte del día completo","Gráficos de avance, trabajos del día, hitos y pendientes de todo el parque.")}${opt("hoja","Solo la hoja «"+tn+"»"+sx,"Únicamente los avances de la pestaña que tenés abierta.")}<label class="sub" style="display:block;margin-top:8px">Fecha</label><input id="rdt" type="date" value="${v}" max="${v}" style="${MST}"><div class="sub" style="margin:0">${tab==="cg"?"En «Corte de grid» se incluyen todos los cortes registrados hasta esa fecha, con sus acumulados.":"En «solo la hoja» se usa para marcar lo hecho ese día (Acta e Historial muestran solo esa fecha)."}</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="dayRep('pdf')">🖨 PDF / imprimir</button><button class="btn" onclick="dayRep('share')">📤 Compartir</button><button class="btn" onclick="dayRep('html')">⬇ Descargar archivo (.html)</button><button class="btn" onclick="$m()">Cancelar</button></div>`;$("mu").style.display="flex"};
+ $("mub").innerHTML=`<h2>📄 Reporte</h2><div class="sub">¿Qué querés descargar?</div>${opt("dia","Reporte del día completo","Gráficos de avance, trabajos del día, hitos y pendientes de todo el parque.")}${opt("hoja","Solo la hoja «"+tn+"»"+sx,"Únicamente los avances de la pestaña que tenés abierta.")}<label class="sub" style="display:block;margin-top:8px">Fecha</label><input id="rdt" type="date" value="${v}" max="${v}" style="${MST}"><div class="sub" style="margin:0">${tb==="cg"?"En «Corte de grid» se incluyen todos los cortes registrados hasta esa fecha, con sus acumulados.":"En «solo la hoja» se usa para marcar lo hecho ese día (Acta e Historial muestran solo esa fecha)."}</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px"><button class="btn pri" onclick="dayRep('pdf')">🖨 PDF / imprimir</button><button class="btn" onclick="dayRep('share')">📤 Compartir</button><button class="btn" onclick="dayRep('html')">⬇ Descargar archivo (.html)</button><button class="btn" onclick="$m()">Cancelar</button></div>`;$("mu").style.display="flex"};
 window.REPKset=k=>{REPK=k;const v=($("rdt")||{}).value;openDayRep();if(v&&$("rdt"))$("rdt").value=v};
 window.dayRep=async mode=>{const ds=($("rdt")||{}).value;if(!ds)return;let html,fn;
- try{if(REPK==="hoja"){$m();toast("Generando reporte…",true);html=await sheetReportHtml(tab,ds,mode==="pdf");fn="reporte-"+(tab==="tsa"?"adicionales-tsa":tab)+"-"+ds+".html"}else{html=dayReportHtml(ds,mode==="pdf");fn="reporte-dia-"+ds+".html"}}
+ try{if(REPK==="hoja"){$m();toast("Generando reporte…",true);html=await sheetReportHtml(RTAB||tab,ds,mode==="pdf");fn="reporte-"+((RTAB||tab)==="tsa"?"adicionales-tsa":(RTAB||tab))+"-"+ds+".html"}else{html=dayReportHtml(ds,mode==="pdf");fn="reporte-dia-"+ds+".html"}}
  catch(e){toast("❌ No se pudo generar el reporte: "+e.message);return}$m();
  if(mode==="share"){const f=new File([html],fn,{type:"text/html"});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:fn.replace(/\.html$/,""),text:"Reporte Commissioning PE Olavarría"});return}}catch(e){if(e&&e.name==="AbortError")return}dlBlob(new Blob([html],{type:"text/html"}),fn);toast("Este dispositivo no permite compartir archivos: se descargó el reporte para que lo envíes",true);return}
  if(mode==="html"){dlBlob(new Blob([html],{type:"text/html"}),fn);toast("✅ Reporte descargado",true);return}
@@ -1845,7 +1851,7 @@ window.doBackup=async tipo=>{
   }
   localStorage.setItem("respaldo",String(Date.now()));st.textContent="✅ Respaldo descargado. Revisá la carpeta de descargas.";render(true)
  }catch(e){st.textContent="❌ No se pudo generar el respaldo: "+e.message+(tipo==="xlsx"?". Probá con la copia completa (.json).":"")}};
-window.goWtg=w=>{sel=w;tab="wtg";render()};
+window.goWtg=w=>{sel=w;tab="wtg";if(innerWidth<700&&FW)fwClose();render()};
 /* Detecta a qué WTG se refiere un registro: campo "WTG involucrados" + menciones "WTG 13", "WTG 5, 7 y 13" en el texto */
 function actaWtgs(a){
  const set=new Set();
@@ -1860,7 +1866,21 @@ function wtgActa(w){
  return h+L.map(a=>entryHtml(a,true)).join("")+`</div>`}
 window.setMapS=n=>{mapS=mapS===n||!n?0:n;render(true)};
 window.setSel=w=>{sel=w;render(true)};
-window.setTab=k=>{tab=k;render()};
+window.setTab=k=>{if(k==="nov"||k==="mapa"||k==="his"){if(FW!==k)fwOpen(k);return}tab=k;render()};
+/* ---------- Ventanas flotantes: Novedades, Mapa e Historial ---------- */
+let FW="",FWmax=false;
+const FWT={nov:"📰 Novedades",mapa:"🗺️ Mapa",his:"🕘 Historial"};
+function fwBuild(){if($("fw"))return;document.body.insertAdjacentHTML("beforeend",`<div id="fw" class="fw" role="dialog" aria-label="Ventana"><div class="chhd"><b id="fwt"></b><span style="flex:1"></span><button class="btn" onclick="fwRep()" title="Reporte de esta hoja">📄</button><button class="btn" onclick="fwMax()" title="Agrandar / achicar" id="fwmx">⤢</button><button class="btn" onclick="fwClose()" title="Cerrar" aria-label="Cerrar">✕</button></div><div id="fwb" class="fwb"></div></div>`)}
+function fwMark(){document.querySelectorAll(".fwbtn").forEach(b=>b.classList.toggle("on",b.dataset.k===FW))}
+window.fwOpen=k=>{fwBuild();if(FW===k){fwClose();return}if(innerWidth<700&&CHopen)chToggle();FW=k;const w=$("fw");w.style.display="flex";w.dataset.k=k;$("fwt").textContent=FWT[k];fwMark();paintFW(false);const b=$("fwb");if(b)b.scrollTop=0};
+window.fwClose=()=>{FW="";const w=$("fw");if(w)w.style.display="none";fwMark();if(MFS){MFS=false;document.body.classList.remove("mapfs")}};
+window.fwMax=()=>{FWmax=!FWmax;$("fw").classList.toggle("max",FWmax);if(FW==="mapa")mapFit()};
+window.fwRep=()=>{if(FW)openDayRep(FW)};
+function paintFW(keep){const w=$("fwb");if(!FW||!w)return;const real=tab;tab=FW;
+ try{const mb=w.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null,sc=w.scrollTop;
+  w.innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:FW=="nov"?vNov():FW=="mapa"?vMapa():vHist();
+  if(keep){w.scrollTop=sc;if(sb&&FW=="mapa"){const n=w.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}}
+  if(FW=="mapa")mapFit()}finally{tab=real}}
 window.render=function(keep){
  const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
  $("usr").textContent="👤 "+(NAME||"Identificarme");chBadge();$("thm").textContent=isDark()?"☀️":"🌙";
@@ -1872,15 +1892,15 @@ window.render=function(keep){
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
  if(tab=="tsa"&&!isGlote())tab="wtg";
- $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[])].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
  if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
  if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  paintDetail();
- if(tab=="mapa")mapFit();else if(MFS){MFS=false;document.body.classList.remove("mapfs")}
+ paintFW(true);if(MFS&&FW!=="mapa"){MFS=false;document.body.classList.remove("mapfs")}
  const lb=+(localStorage.getItem("respaldo")||0),dias=lb?Math.floor((Date.now()-lb)/864e5):null;
- $("adm").innerHTML=`<button class="btn pri" onclick="openDayRep()">📄 Reporte</button> <button class="btn" onclick="openBackup()">💾 Descargar respaldo</button> ${isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:""}<div class="sub" style="margin:8px 0 0;${dias===null||dias>=7?"color:var(--nt);font-weight:600":""}">${dias===null?"Todavía no hiciste ningún respaldo en este dispositivo":dias===0?"Último respaldo en este dispositivo: hoy":`Último respaldo en este dispositivo: hace ${dias} día${dias>1?"s":""}`}</div>`;
+ $("adm").innerHTML=`<button class="btn pri" onclick="openDayRep(0)">📄 Reporte</button> <button class="btn" onclick="openBackup()">💾 Descargar respaldo</button> ${isAdmin?`<button class="btn dg" onclick="restoreAll()">Restaurar datos originales (admin)</button>`:""}<div class="sub" style="margin:8px 0 0;${dias===null||dias>=7?"color:var(--nt);font-weight:600":""}">${dias===null?"Todavía no hiciste ningún respaldo en este dispositivo":dias===0?"Último respaldo en este dispositivo: hoy":`Último respaldo en este dispositivo: hace ${dias} día${dias>1?"s":""}`}</div>`;
 };
 render();
 loadWx();setInterval(loadWx,15*60*1000);addEventListener("online",loadWx);
