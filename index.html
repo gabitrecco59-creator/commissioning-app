@@ -250,6 +250,14 @@ body{background:radial-gradient(1200px 500px at 10% -10%,color-mix(in srgb,var(-
 .mseg{display:flex;height:26px;border-radius:13px;overflow:hidden;background:var(--pe)}.mseg i{display:flex;align-items:center;justify-content:center;font:700 12px system-ui;font-style:normal;min-width:6px}
 .mleg{display:flex;gap:6px 16px;flex-wrap:wrap;margin:8px 0 0;font-size:13px;color:var(--mu)}.mleg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}.mleg b{color:var(--tx)}
 .mapwrap.mfs{position:fixed;inset:0;z-index:60;border-radius:0;margin:0;padding:10px;display:flex;flex-direction:column;overflow:hidden;background:var(--card)}.mapwrap.mfs .mapbox{flex:1;min-height:0;max-height:none}body.mapfs{overflow:hidden}
+/* ===== Chat ===== */
+.chl{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 330px);min-height:240px;overflow-y:auto;padding:4px 2px;margin-bottom:8px;overscroll-behavior:contain}
+.chm{display:flex}.chm.me{justify-content:flex-end}.chb{max-width:82%;background:var(--bg);border:1px solid var(--bd);border-radius:14px 14px 14px 4px;padding:6px 10px;min-width:0}
+.chm.me .chb{background:linear-gradient(135deg,var(--g1),var(--g2));border-color:transparent;color:#fff;border-radius:14px 14px 4px 14px}
+.chn{display:block;font-size:11.5px;color:var(--g2);margin-bottom:1px}.cht{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.35}
+.chh{display:block;text-align:right;font-size:10px;opacity:.7;margin-top:2px}.chh a{cursor:pointer;margin-left:6px;padding:2px 4px}
+.chd{text-align:center;margin:6px 0 2px}.chd span{font-size:11px;color:var(--mu);background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:1px 10px}
+.chf{display:flex;gap:8px;align-items:flex-end}.chf textarea{flex:1;min-width:0;resize:none}.chf .btn{height:44px}
 /* ===== Corte de grid v2: distribución en paneles + línea de tiempo ===== */
 .cgtt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.cgtt h2{font-size:18px;margin:0}
 .cgg{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}.cgg>*{min-width:0}.cgg .card{margin:0;padding:10px 12px}.cgg h2{font-size:13px;margin:0 0 6px}
@@ -491,7 +499,7 @@ const histCol=collection(db,...PROJ,"history");
 const actaCol=collection(db,...PROJ,"acta");
 const sisCol=collection(db,...PROJ,"sistemas");
 const piezasCol=collection(db,...PROJ,"piezas");
-const fotosCol=collection(db,...PROJ,"fotos");
+const fotosCol=collection(db,...PROJ,"fotos"),chatCol=collection(db,...PROJ,"chat");
 const corteCol=collection(db,...PROJ,"cortes");
 
 onAuthStateChanged(auth,async u=>{
@@ -516,6 +524,9 @@ function start(){
  onSnapshot(query(actaCol,orderBy("at","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   A=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
+ onSnapshot(query(chatCol,orderBy("ts","desc"),limit(300)),{includeMetadataChanges:true},snap=>{
+  CHerr="";CH=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data()}));chNotify();render(true)
+ },e=>{CHerr=e.code||"error";render(true)});
  onSnapshot(query(corteCol,orderBy("ts","desc"),limit(500)),{includeMetadataChanges:true},snap=>{
   CG=snap.docs.map(d=>({id:d.id,pending:d.metadata.hasPendingWrites,...d.data({serverTimestamps:"estimate"})}));render(true)
  },()=>{});
@@ -728,6 +739,41 @@ window.cgSave=()=>{const d=cgD;if(!canEdit())return;
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: el corte NO se guardó (¿publicaste las reglas nuevas?)":"❌ El corte no se guardó: "+e.message));
  $m();cgD=null;toast(d.id?"Corte actualizado":"Corte registrado",true)};
 function cgUpd(b,c,arr){b.update(doc(corteCol,c.id),{revisadas:arr,revBy:uid,revByName:NAME,revAt:serverTimestamp()})}
+/* ---------- Chat entre técnicos (nivel 1: mensajes en tiempo real, sin push) ---------- */
+let CH=[],CHerr="",chDraft="",chInit=false,chKnown=new Set();
+const chSeen=()=>{try{return +(localStorage.getItem("chseen")||0)}catch(e){return 0}};
+const chMark=()=>{try{const t=CH.length?Math.max(...CH.map(m=>m.ts||0)):Date.now();localStorage.setItem("chseen",String(t))}catch(e){}};
+const chUnread=()=>{const t=chSeen();return CH.filter(m=>m.by!==uid&&(m.ts||0)>t).length};
+function chBeep(){try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}try{const A=window.AudioContext||window.webkitAudioContext,a=new A(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(.12,a.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);setTimeout(()=>a.close(),600)}catch(e){}}
+function chNotify(){
+ const nw=CH.filter(m=>!chKnown.has(m.id));CH.forEach(m=>chKnown.add(m.id));
+ if(!chInit){chInit=true;return}
+ const o=nw.filter(m=>m.by!==uid&&!m.pending);
+ if(o.length&&!(tab==="chat"&&document.visibilityState==="visible")){const m=o[0];toast("💬 "+(m.byName||"Técnico")+": "+String(m.text).slice(0,60));chBeep()}
+ document.title=(chUnread()?"("+chUnread()+") ":"")+"Commissioning PE Olavarría"}
+const chDay=t=>{const d=new Date(t),h=new Date();return d.toDateString()===h.toDateString()?"Hoy":d.toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"})};
+function chatList(){
+ if(CHerr==="permission-denied")return `<div class="sub" style="text-align:center;padding:30px 10px;color:var(--nt)">⚠️ El chat todavía no está habilitado: falta publicar las reglas nuevas de Firebase.</div>`;
+ if(!CH.length)return `<div class="sub" style="text-align:center;padding:30px 10px">Todavía no hay mensajes. Escribí el primero 👇</div>`;
+ let last="",h="";
+ CH.slice().reverse().forEach(m=>{const t=m.ts||Date.now(),dk=new Date(t).toDateString(),mine=m.by===uid;
+  if(dk!==last){h+=`<div class="chd"><span>${esc(chDay(t))}</span></div>`;last=dk}
+  h+=`<div class="chm${mine?" me":""}"><div class="chb">${mine?"":`<b class="chn">${esc(m.byName||"—")}</b>`}<div class="cht">${esc(m.text)}</div><span class="chh">${hhmm(new Date(t))}${m.pending?" ⏳":""}${mine&&!m.pending?` <a onclick="chDel('${m.id}')" title="Borrar mi mensaje">✕</a>`:""}</span></div></div>`});
+ return h}
+function vChat(){
+ chMark();document.title="Commissioning PE Olavarría";
+ return `<div class="card chc"><h2 style="margin:0 0 6px">💬 Chat de técnicos</h2><div class="sub" style="margin:0 0 8px">Los mensajes los ven todos en tiempo real. Aviso solo con la app abierta.</div>
+ <div id="chlist" class="chl">${chatList()}</div>
+ <div class="chf"><textarea id="chtx" rows="2" maxlength="500" placeholder="Escribí un mensaje…" oninput="chDraft=this.value" onkeydown="chKey(event)">${esc(chDraft)}</textarea><button class="btn pri" onclick="chSend()">Enviar</button></div></div>`}
+window.chKey=e=>{if(e.key==="Enter"&&!e.shiftKey&&innerWidth>=900){e.preventDefault();chSend()}};
+window.chSend=()=>{if(!canEdit()){if(!NAME)openUser();return}
+ const el=$("chtx"),t=(el?el.value:chDraft).trim();if(!t)return;
+ const b=writeBatch(db);b.set(doc(chatCol),{text:t.slice(0,500),by:uid,byName:NAME,ts:Date.now(),at:serverTimestamp()});
+ chDraft="";if(el){el.value="";el.focus()}
+ b.commit().catch(e=>{toast(e.code==="permission-denied"?"❌ Sin permiso (¿publicaste las reglas nuevas?)":"❌ No se envió: "+e.message)});
+ setTimeout(chBottom,50)};
+window.chDel=id=>{if(!confirm("¿Borrar tu mensaje?"))return;const b=writeBatch(db);b.delete(doc(chatCol,id));b.commit().catch(e=>toast("❌ No se pudo borrar: "+e.message))};
+const chBottom=()=>{const l=$("chlist");if(l)l.scrollTop=l.scrollHeight};
 const cgErr=e=>toast(e.code==="permission-denied"?"❌ Sin permiso (¿publicaste las reglas nuevas?)":"❌ No se guardó: "+e.message);
 window.cgRev=(id,w)=>{if(!canEdit()){if(!NAME)openUser();return}const c=CG.find(x=>x.id===id);if(!c)return;const r=c.revisadas||[],n=r.includes(w)?r.filter(x=>x!==w):[...r,w];const b=writeBatch(db);cgUpd(b,c,n);b.commit().catch(cgErr)};
 window.cgRevW=w=>{if(!canEdit()){if(!NAME)openUser();return}const b=writeBatch(db);let k=0;CG.forEach(c=>{if(c.tipo==="evento"&&cgNoV(c).includes(w)&&!(c.revisadas||[]).includes(w)){cgUpd(b,c,[...(c.revisadas||[]),w]);k++}});if(k)b.commit().then(()=>toast("WTG "+pad(w)+" marcada como revisada",true)).catch(cgErr)};
@@ -1807,7 +1853,7 @@ function wtgActa(w){
  return h+L.map(a=>entryHtml(a,true)).join("")+`</div>`}
 window.setMapS=n=>{mapS=mapS===n||!n?0:n;render(true)};
 window.setSel=w=>{sel=w;render(true)};
-window.setTab=k=>{tab=k;render()};
+window.setTab=k=>{tab=k;render();if(k==="chat")setTimeout(chBottom,30)};
 window.render=function(keep){
  const [c,txt]=status();$("st").className="pill "+c;$("st").lastChild.textContent=txt;
  $("usr").textContent="👤 "+(NAME||"Identificarme");$("thm").textContent=isDark()?"☀️":"🌙";
@@ -1819,9 +1865,9 @@ window.render=function(keep){
   :(ready&&!NAME)?`<div class="banner sy">👤 Tocá "Identificarme" para poder editar.</div>`:"");
  document.body.classList.toggle("ro",!canEdit());
  if(tab=="tsa"&&!isGlote())tab="wtg";
- $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
+ $("tabs").innerHTML=[["res","📊 Resumen"],["map","🗺️ Pizarra"],["wtg","🌀 WTG"],["cg","⚡ Corte de grid"+(cgPend()?" ⚠"+cgPend():"")],["pie","🔧 Piezas"],["act","📝 Acta"],["chat","💬 Chat"+(chUnread()&&tab!=="chat"?" 🔴"+chUnread():"")],["nov","📰 Novedades"],["mapa","🗺️ Mapa"],...(isGlote()?[["tsa","🔒 Adicionales TSA"]]:[]),["his","🕘 Historial"]].map(([k,n])=>`<button class="${tab==k?"on":""}" onclick="setTab('${k}')">${n}</button>`).join("");
  const m=document.querySelector(".map"),sl=m?[m.scrollLeft,m.scrollTop]:null,mb=document.querySelector(".mapbox"),sb=mb?[mb.scrollLeft,mb.scrollTop]:null;
- if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
+ if(tab=="chat"&&keep&&ready&&$("chlist")){const l=$("chlist"),nb=l.scrollHeight-l.scrollTop-l.clientHeight<80;l.innerHTML=chatList();if(nb)l.scrollTop=l.scrollHeight;chMark()}else if(tab=="act"&&keep&&ready&&$("alist"))$("alist").innerHTML=actaList();else if(tab=="pie"&&keep&&ready&&$("plist"))$("plist").innerHTML=pzList();else $("v").innerHTML=!ready&&!fatal?`<div class="card sub">Cargando datos en tiempo real…</div>`:tab=="res"?vRes():tab=="nov"?vNov():tab=="map"?vMap():tab=="mapa"?vMapa():tab=="wtg"?vWtg():tab=="tsa"?vTsa():tab=="cg"?vCorte():tab=="chat"?vChat():tab=="act"?two(vActa(),"fAct","Tocá para escribir un registro o reportar un daño",true,actExtra()):tab=="pie"?two(vPiezas(),"fPie","Tocá para registrar una pieza extraída",true,pzExtra()):vHist();
  if(keep&&sb&&tab=="mapa"){const n=document.querySelector(".mapbox");if(n){n.scrollLeft=sb[0];n.scrollTop=sb[1]}}
  if(keep&&sl&&tab=="map"){const n=document.querySelector(".map");if(n){n.scrollLeft=sl[0];n.scrollTop=sl[1]}}
  paintDetail();
