@@ -18,7 +18,8 @@
 <meta name="twitter:description" content="Avance de commissioning en tiempo real · 29 aerogeneradores V162 de 6,4 MW · 185,6 MW">
 <meta name="twitter:image" content="https://commissioning-app-steel.vercel.app/og-image.jpg">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#070b16" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef2f9" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Commissioning">
@@ -484,7 +485,9 @@ function applyDark(){const r=document.documentElement.style,t=TONES[TON],dk=isDa
  if(dk&&(DKV!==50||TON!=="oceano"))ks.forEach(k=>r.setProperty("--"+k,dkCol(k,DKV)));
  if(!dk&&TON!=="oceano")["bg","bd","pe"].forEach(k=>r.setProperty("--"+k,"rgb("+tint(LTP[k]).join(",")+")"));
  if(TON!=="oceano"){const c=dk?t.d:t.l;r.setProperty("--g1",c[0]);r.setProperty("--g2",c[1]);r.setProperty("--ac",c[0])}
- const b=$("dkb");if(b)b.style.display=""}
+ const b=$("dkb");if(b)b.style.display="";syncBar()}
+/* La barra del sistema (título de la ventana / barra de estado) toma el color del fondo actual */
+function syncBar(){try{const c=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();if(!c)return;const ms=document.querySelectorAll('meta[name="theme-color"]');let m=ms[0];if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}for(let i=1;i<ms.length;i++)ms[i].remove();m.removeAttribute("media");m.setAttribute("content",c)}catch(e){}}
 matchMedia("(prefers-color-scheme: dark)").addEventListener&&matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyDark());
 const dkName=()=>DKV<=15?"Suave":DKV<=40?"Algo suave":DKV<=60?"Normal":DKV<=85?"Intenso":"Profundo (negro)";
 window.dkSet=v=>{DKV=Math.max(0,Math.min(100,+v||0));try{localStorage.setItem("dk",String(DKV))}catch(e){}applyDark();const l=$("dkl");if(l)l.textContent=dkName()};
