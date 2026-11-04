@@ -526,7 +526,7 @@ let aTipo="acta",draftC="",draftS="Mayor",draftPh=[],aFil="all",PH={},PHshow={},
 let WX=null,WXat=0,WXerr="";
 try{const c=JSON.parse(localStorage.getItem("wx2")||"null");if(c&&c.j){WX=c.j;WXat=c.at}}catch(e){}
 let MI=+(localStorage.getItem("miwtg")||0),mapS=0;
-let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:""};
+let P=[],pzOnly=true,pzD={pieza:"",don:"",rcv:"",obs:"",ph:[]};
 const done=k=>!!(T[k]&&T[k].done), note=k=>T[k]&&T[k].note;
 const wp=w=>{let n=0;for(let s=1;s<=NS;s++)n+=done(K(w,s))?1:0;return n};
 const sp=s=>{let n=0;for(let w=1;w<=NW;w++)n+=done(K(w,s))?1:0;return n};
@@ -1674,13 +1674,43 @@ const rcvLabel=r=>/^\d+$/.test(String(r))?"WTG "+pad(+r):esc(r);
 const wopts=v=>`<option value="">Elegir…</option>`+Array.from({length:NW},(_,i)=>`<option value="${i+1}" ${String(v)===String(i+1)?"selected":""}>WTG ${pad(i+1)}</option>`).join("");
 function pieceRow(x){
  const d=x.at&&x.at.toDate?x.at.toDate():null;
- return `<div class="ae"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>${esc(x.pieza)}</b><div class="t">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div>${x.obs?`<div class="atx" style="font-size:13px">${esc(x.obs)}</div>`:""}<div class="t">${esc(x.byName||"—")} · ${fmt(d)}${x.pending?" · ⏳ guardando…":""}${x.repuesta?` · repuesta por ${esc(x.repByName||"—")}`:""}</div></div><div style="text-align:right;flex:none"><button class="chip ${x.repuesta?"d":"n"}" onclick="pzToggle('${x.id}')">${x.repuesta?"✅ Repuesta":"⏳ Pendiente en WTG "+pad(x.don)}</button>${!x.repuesta&&d&&dias(d)>=1?`<div class="t" style="margin-top:4px;font-weight:700;color:${dias(d)>=14?"var(--er)":dias(d)>=7?"var(--nt)":"var(--mu)"}">hace ${dias(d)} día${dias(d)>1?"s":""}</div>`:""}${isAdmin?` <button class="btn" onclick="pzDel('${x.id}')">🗑</button>`:""}</div></div></div>`}
+ return `<div class="ae"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>${esc(x.pieza)}</b><div class="t">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div>${x.obs?`<div class="atx" style="font-size:13px">${esc(x.obs)}</div>`:""}<div class="t">${esc(x.byName||"—")} · ${fmt(d)}${x.pending?" · ⏳ guardando…":""}${x.repuesta?` · repuesta por ${esc(x.repByName||"—")}`:""}</div><button class="btn" style="margin-top:6px;padding:4px 10px;font-size:12px" onclick="pzVerFotos('${x.id}')">📷 ${x.nfotos?`Ver ${x.nfotos} foto${x.nfotos>1?"s":""}`:"Fotos"}</button></div><div style="text-align:right;flex:none"><button class="chip ${x.repuesta?"d":"n"}" onclick="pzToggle('${x.id}')">${x.repuesta?"✅ Repuesta":"⏳ Pendiente en WTG "+pad(x.don)}</button>${!x.repuesta&&d&&dias(d)>=1?`<div class="t" style="margin-top:4px;font-weight:700;color:${dias(d)>=14?"var(--er)":dias(d)>=7?"var(--nt)":"var(--mu)"}">hace ${dias(d)} día${dias(d)>1?"s":""}</div>`:""}${isAdmin?` <button class="btn" onclick="pzDel('${x.id}')">🗑</button>`:""}</div></div></div>`}
 function pzList(){
  const L=[...P].filter(x=>!pzOnly||!x.repuesta).sort((a,b)=>(a.repuesta?1:0)-(b.repuesta?1:0));
  if(pzOnly&&L.length){const by={};L.forEach(x=>{(by[x.don]=by[x.don]||[]).push(x)});
   return Object.keys(by).sort((a,b)=>by[b].length-by[a].length||a-b).map(w=>{const old=Math.max(...by[w].map(x=>dias(toD(x))));
    return `<div class="ad" style="display:flex;justify-content:space-between;gap:8px"><span>WTG ${pad(w)} debe ${by[w].length} pieza${by[w].length>1?"s":""}</span><span style="font-weight:600;color:${old>=14?"var(--er)":old>=7?"var(--nt)":"var(--mu)"}">${old>=1?"la más antigua: "+old+" d":""}</span></div>`+by[w].map(pieceRow).join("")}).join("")}
  return L.length?L.map(pieceRow).join(""):`<div class="sub">${pzOnly?"No hay piezas pendientes de reposición.":"Todavía no hay piezas registradas."}</div>`}
+function pzThumbs(){return (pzD.ph||[]).map((f,i)=>`<span style="position:relative;display:inline-block;margin:0 6px 6px 0"><img src="${f.data}" alt="Foto ${i+1}" style="width:78px;height:78px;object-fit:cover;border-radius:10px;border:1px solid var(--bd)"><button class="btn" style="position:absolute;top:-6px;right:-6px;padding:0 6px;border-radius:50%;background:var(--card)" onclick="pzRmFoto(${i})" aria-label="Quitar foto">✕</button></span>`).join("")}
+window.pzRmFoto=i=>{pzD.ph.splice(i,1);$("pzph").innerHTML=pzThumbs()};
+window.pzFotos=async inp=>{
+ const fs=[...inp.files];inp.value="";let bad=0;pzD.ph=pzD.ph||[];
+ for(const f of fs){if(pzD.ph.length>=4){toast("Máximo 4 fotos por pieza");break}
+  try{pzD.ph.push(await shrink(f))}catch(e){bad++}}
+ if(bad)toast("No se pudo leer "+bad+" foto"+(bad>1?"s":"")+" (formato no compatible)");
+ const el=$("pzph");if(el)el.innerHTML=pzThumbs()};
+/* Fotos de una pieza ya registrada: se guardan en "fotos" con actaId "pz_<id>" (no cambia las reglas) */
+async function pzPhPaint(id){
+ const x=P.find(y=>y.id===id),box=$("pzphv");if(!box)return;
+ const L=PH["pz_"+id];
+ box.innerHTML=!L?`<div class="sub">Cargando fotos…</div>`:L.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${L.map((f,k)=>`<img src="${f.data}" alt="Foto ${k+1}" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer" onclick="pzImg('${id}',${k})">`).join("")}</div>`:`<div class="sub">Esta pieza todavía no tiene fotos.</div>`}
+window.pzVerFotos=async id=>{
+ const x=P.find(y=>y.id===id);if(!x)return;
+ $("mub").innerHTML=`<h2>📷 ${esc(x.pieza)}</h2><div class="sub">WTG ${pad(x.don)} → ${rcvLabel(x.rcv)}</div><div id="pzphv"></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px">${canEdit()?`<label class="btn" style="cursor:pointer">➕ Agregar foto<input type="file" accept="image/*" multiple style="display:none" onchange="pzFotoMas('${id}',this)"></label>`:""}<button class="btn" onclick="$m()">Cerrar</button></div>`;
+ $("mu").style.display="flex";pzPhPaint(id);await getPh("pz_"+id);pzPhPaint(id)};
+window.pzImg=(id,k)=>{const f=(PH["pz_"+id]||[])[k];if(!f)return;
+ $("mub").innerHTML=`<img src="${f.data}" alt="Foto de la pieza" style="width:100%;border-radius:10px;display:block"><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px"><button class="btn" onclick="pzVerFotos('${id}')">← Volver</button><button class="btn" onclick="$m()">Cerrar</button></div>`;$("mu").style.display="flex"};
+window.pzFotoMas=async(id,inp)=>{
+ if(!canEdit()){if(!NAME)openUser();return}
+ const fs=[...inp.files].slice(0,4);inp.value="";const cur=PH["pz_"+id]||await getPh("pz_"+id);
+ if(cur.length+fs.length>8){toast("Máximo 8 fotos por pieza");return}
+ const ph=[];let bad=0;for(const f of fs){try{ph.push(await shrink(f))}catch(e){bad++}}
+ if(bad)toast("No se pudo leer "+bad+" foto"+(bad>1?"s":""));if(!ph.length)return;
+ const b=writeBatch(db),base=Date.now();
+ ph.forEach((f,k)=>b.set(doc(fotosCol),{actaId:"pz_"+id,i:base+k,data:f.data,w:f.w,h:f.h,by:uid,at:serverTimestamp()}));
+ PH["pz_"+id]=[...cur,...ph.map((f,k)=>({...f,i:base+k,actaId:"pz_"+id}))];pzPhPaint(id);
+ b.commit().then(()=>toast("📷 Foto guardada")).catch(e=>{toast(e.code==="permission-denied"?"❌ Sin permiso: la foto NO se guardó":"❌ La foto no se guardó: "+e.message);delete PH["pz_"+id];pzPhPaint(id)})};
 function vPiezas(){
  return `<div class="card acta-form"><h2>🔧 Registrar pieza extraída</h2>
  <input class="pi" id="pzp" maxlength="120" placeholder="Pieza (ej: Encoder blade B)" value="${esc(pzD.pieza)}" oninput="pzSet('pieza',this.value)">
@@ -1689,7 +1719,9 @@ function vPiezas(){
  <div class="sub" style="margin:0 0 4px">WTG que recibe</div>
  <select onchange="pzSet('rcv',this.value)">${wopts(pzD.rcv).replace("</select>","")}${["Mataco","Container","Otro"].map(o=>`<option value="${o}" ${pzD.rcv===o?"selected":""}>${o}</option>`).join("")}</select>
  <input class="pi" maxlength="200" placeholder="Observaciones (opcional)" value="${esc(pzD.obs)}" oninput="pzSet('obs',this.value)">
- <button class="btn pri" onclick="pzAdd()">Registrar pieza</button>
+ <div id="pzph">${pzThumbs()}</div>
+ <label class="btn" style="display:inline-block;margin-bottom:10px;cursor:pointer">📷 Foto del material (hasta 4)<input type="file" accept="image/*" multiple style="display:none" onchange="pzFotos(this)"></label>
+ <div><button class="btn pri" onclick="pzAdd()">Registrar pieza</button></div>
  <div class="sub" style="margin:8px 0 0">La WTG donante queda con la pieza como <b>pendiente</b> (se suma a sus pendientes y al Resumen) hasta que se marque como repuesta.</div></div>
  <!--SPLIT--><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h2 style="margin:0">Piezas extraídas</h2><div style="display:flex;gap:6px"><button class="chip ${pzOnly?"d":""}" onclick="pzF(true)">Pendientes (${ppTot()})</button><button class="chip ${pzOnly?"":"d"}" onclick="pzF(false)">Todas (${P.length})</button></div></div><div id="plist">${pzList()}</div></div>`}
 window.pzSet=(k,v)=>{pzD[k]=v};
@@ -1714,10 +1746,12 @@ window.pzAdd=()=>{
   m+="\n¿Querés registrarla igual?";
   if(!confirm(m))return;
  }
- const b=writeBatch(db);
- b.set(doc(piezasCol),{pieza,don,rcv,obs:pzD.obs.trim(),repuesta:false,by:uid,byName:NAME,at:serverTimestamp()});
+ const b=writeBatch(db),ref=doc(piezasCol),ph=(pzD.ph||[]).slice();
+ b.set(ref,{pieza,don,rcv,obs:pzD.obs.trim(),nfotos:ph.length,repuesta:false,by:uid,byName:NAME,at:serverTimestamp()});
+ ph.forEach((f,i)=>b.set(doc(fotosCol),{actaId:"pz_"+ref.id,i,data:f.data,w:f.w,h:f.h,by:uid,at:serverTimestamp()}));
+ if(ph.length)PH["pz_"+ref.id]=ph.map((f,i)=>({...f,i,actaId:"pz_"+ref.id}));
  b.commit().catch(e=>toast(e.code==="permission-denied"?"❌ Sin permiso: la pieza NO se guardó":"❌ La pieza no se guardó: "+e.message));
- pzD={pieza:"",don:"",rcv:"",obs:""};render()};
+ pzD={pieza:"",don:"",rcv:"",obs:"",ph:[]};render()};
 window.pzToggle=id=>{
  const x=P.find(y=>y.id===id);if(!x)return;
  if(!canEdit()){if(!NAME)openUser();return}
